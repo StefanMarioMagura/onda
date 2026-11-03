@@ -1,0 +1,54 @@
+# ONDA — contexto del proyecto para Claude Code
+
+ONDA es una app (móvil, web y PC) que explica lo que pasa en el mundo por lo que le cuesta al usuario.
+Feed vertical tipo TikTok, pero finito (5-8 "ondas" al día), útil y sin burbuja política.
+Es mi proyecto final: prioriza código claro, explicable y bien probado sobre trucos.
+
+## Las tres capas
+- **Tu bolsillo:** precios de carburantes, semáforo "¿lleno hoy o espero?", gasolineras baratas en tu ruta.
+- **Tu país:** política explicada por sus consecuencias, con "Las dos orillas" (cómo lo cuenta cada lado + hechos comunes).
+- **El mundo:** solo sucesos cuya onda llega a la vida del usuario en España.
+
+Cada onda = 4 tarjetas: qué pasó → por qué importa → cómo te llega → qué haces.
+
+## Stack
+- App: Flutter (Dart) + Riverpod + go_router. Mapas con flutter_map. Animaciones con Rive o Lottie.
+- Backend: Supabase (Postgres + PostGIS, Auth, Storage). Row Level Security siempre activada.
+- Workers: Python (pandas, scikit-learn/statsmodels), lanzados con GitHub Actions (cron) o pg_cron.
+- IA de ondas: API de un modelo de lenguaje con salida JSON de esquema fijo. Toda onda pasa por revisión humana antes de publicarse.
+- Notificaciones: Firebase Cloud Messaging. Analítica: PostHog. Errores: Sentry.
+
+## Estructura del repositorio
+```
+/app          # Flutter
+/workers      # Python: ingesta de precios, Brent, noticias, motor de ondas, modelo del semáforo
+/supabase     # migraciones SQL y políticas RLS
+/docs         # memoria del proyecto y decisiones
+```
+
+## Fuentes de datos
+- Precios de todas las gasolineras: API REST de precios de carburantes del Ministerio (Geoportal de Gasolineras).
+- Brent: API de la EIA. Cambio EUR/USD: API del BCE.
+- Noticias: RSS de medios + GDELT. Orientación de medios: clasificación propia documentada en /docs.
+- La app NUNCA llama a fuentes externas: solo lee de Supabase.
+
+## Tablas principales
+usuarios, gasolineras, precios (histórico, nunca se borra), brent_diario, eventos, ondas,
+orillas, preguntas, predicciones, interacciones.
+
+## Reglas
+- Interfaz en español de España. Código, nombres de variables y commits en inglés.
+- Nunca secretos en el código: variables de entorno y GitHub Secrets.
+- Cada cambio de esquema = una migración en /supabase/migrations.
+- Tests para la lógica del semáforo, el cálculo de ahorro y los parsers de las fuentes.
+- El feed tiene final. Nada de scroll infinito ni recomendación por afinidad política.
+- Noticias: solo titular, enlace y resumen propio; nunca el texto completo de un medio.
+- Ubicación del usuario solo aproximada (RGPD).
+
+## Semáforo (modelo v1)
+Regresión del cambio de precio a 7 días sobre los cambios del Brent en euros de los últimos 14 días + día de la semana.
+Verde (llena hoy) si sube más de 1 cént/l, rojo (espera) si baja más de 1 cént/l, ámbar en otro caso.
+Comparar siempre con la referencia "mañana igual que hoy".
+
+## Fase actual
+F0 · Preparación: diseño en Figma, repositorio, y empezar YA a guardar el histórico de precios cada 30 min.

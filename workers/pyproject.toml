@@ -1,0 +1,22 @@
+[project]
+name = "onda-workers"
+version = "0.1.0"
+description = "ONDA data workers: fuel prices, Brent, news, waves engine"
+requires-python = ">=3.12"
+dependencies = [
+  "requests>=2.32",
+  "psycopg[binary]>=3.2",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8"]
+
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = ["onda_workers"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
