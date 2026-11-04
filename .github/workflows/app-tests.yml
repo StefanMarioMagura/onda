@@ -1,0 +1,33 @@
+name: App tests
+
+on:
+  push:
+    paths: ["app/**", ".github/workflows/app-tests.yml"]
+  pull_request:
+    paths: ["app/**"]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: app
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          # Same version as local development (flutter --version).
+          flutter-version: "3.47.9"
+          channel: stable
+          cache: true
+
+      - run: flutter pub get
+
+      - name: Analyze
+        run: flutter analyze --fatal-infos
+
+      # tool/screenshots (golden renders) is not run here: it only regenerates PNGs.
+      - name: Test
+        run: flutter test
