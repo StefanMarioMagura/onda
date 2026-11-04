@@ -1,5 +1,5 @@
 name: onda
-description: "A new Flutter project."
+description: "ONDA: lo que pasa en el mundo, por lo que te cuesta."
 publish_to: 'none'
 version: 0.1.0+1
 
@@ -20,3 +20,11 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+  fonts:
+    # Variable fonts (OFL), bundled so the app never fetches them from Google.
+    - family: Newsreader
+      fonts:
+        - asset: assets/fonts/Newsreader.ttf
+    - family: IBMPlexSans
+      fonts:
+        - asset: assets/fonts/IBMPlexSans.ttf

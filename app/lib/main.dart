@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+
+import 'app/router.dart';
+import 'app/theme.dart';
 
 // Passed at build time, never hardcoded:
 // flutter run --dart-define=SUPABASE_URL=... --dart-define=SUPABASE_PUBLISHABLE_KEY=...
@@ -16,12 +18,6 @@ Future<void> main() async {
   runApp(const ProviderScope(child: OndaApp()));
 }
 
-final _router = GoRouter(
-  routes: [
-    GoRoute(path: '/', builder: (context, state) => const HomeScreen()),
-  ],
-);
-
 class OndaApp extends StatelessWidget {
   const OndaApp({super.key});
 
@@ -29,20 +25,11 @@ class OndaApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp.router(
       title: 'ONDA',
+      debugShowCheckedModeBanner: false,
       locale: const Locale('es', 'ES'),
-      theme: ThemeData(colorSchemeSeed: Colors.teal, useMaterial3: true),
-      routerConfig: _router,
-    );
-  }
-}
-
-class HomeScreen extends StatelessWidget {
-  const HomeScreen({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return const Scaffold(
-      body: Center(child: Text('ONDA · Lo que pasa, por lo que te cuesta')),
+      theme: ondaTheme(),
+      scrollBehavior: const OndaScrollBehavior(),
+      routerConfig: router,
     );
   }
 }
