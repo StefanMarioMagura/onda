@@ -1,0 +1,41 @@
+name: Ingest daily price history
+
+on:
+  schedule:
+    # Once a day. Each run fills every missing day, so a skipped run is
+    # caught up by the next one.
+    - cron: "23 6 * * *"
+  workflow_dispatch:
+    inputs:
+      limit:
+        description: "Max days to load in this run (backfill in chunks)"
+        default: "1200"
+
+concurrency:
+  group: ingest-daily-history
+  cancel-in-progress: false
+
+jobs:
+  ingest:
+    runs-on: ubuntu-latest
+    # ~11 s per day: 1200 days ≈ 3.7 h, under GitHub's 6 h job limit.
+    timeout-minutes: 340
+    defaults:
+      run:
+        working-directory: workers
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: workers/pyproject.toml
+
+      - name: Install
+        run: pip install .
+
+      - name: Load missing days
+        env:
+          DATABASE_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: python -m onda_workers.daily_history --limit "${{ inputs.limit || '1200' }}"

@@ -15,6 +15,7 @@ from __future__ import annotations
 import json
 import logging
 import re
+import ssl
 import unicodedata
 from dataclasses import dataclass
 from datetime import datetime
@@ -216,10 +217,32 @@ def parse_snapshot(payload: dict[str, Any]) -> Snapshot:
 # HTTP
 # --------------------------------------------------------------------------
 
+# Some of the Ministry's servers only accept TLS 1.2 with RSA key exchange
+# (AES*-GCM-SHA*, no forward secrecy). Python's default context leaves those
+# ciphers out, so the handshake fails depending on which server answers
+# ("Connection reset" / "UNEXPECTED_EOF"). We add just those two on top of
+# the defaults. Certificates are still verified; the data is public and we
+# send nothing secret, so losing forward secrecy here costs nothing.
+LEGACY_CIPHERS = ("AES256-GCM-SHA384", "AES128-GCM-SHA256")
+
+
+def ssl_context() -> ssl.SSLContext:
+    context = ssl.create_default_context()
+    tls12 = [c["name"] for c in context.get_ciphers() if c["protocol"] == "TLSv1.2"]
+    context.set_ciphers(":".join([*tls12, *LEGACY_CIPHERS]))
+    return context
+
+
+class _MinisterioAdapter(HTTPAdapter):
+    def init_poolmanager(self, *args: Any, **kwargs: Any) -> None:
+        kwargs["ssl_context"] = ssl_context()
+        super().init_poolmanager(*args, **kwargs)
+
+
 def _session() -> requests.Session:
     retry = Retry(total=4, backoff_factor=5, status_forcelist=(429, 500, 502, 503, 504))
     session = requests.Session()
-    session.mount("https://", HTTPAdapter(max_retries=retry))
+    session.mount("https://", _MinisterioAdapter(max_retries=retry))
     session.headers.update({"Accept": "application/json", "User-Agent": "onda-workers/0.1"})
     return session
 

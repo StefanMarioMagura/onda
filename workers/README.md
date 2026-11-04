@@ -6,6 +6,19 @@ han cambiado. Lo ejecuta el GitHub Action `ingest-prices` cada 30 min, que lanza
 Supabase ([ADR 0002](../docs/decisiones/0002-disparo-de-la-ingesta.md)).
 Diseño: [docs/decisiones/0001-historico-de-precios.md](../docs/decisiones/0001-historico-de-precios.md).
 
+## Histórico diario por provincia (`onda_workers.daily_history`)
+Descarga del endpoint histórico del Ministerio los precios de cada día desde 2019 y guarda en
+`precios_diarios` media, mediana, mínimo, máximo y nº de estaciones por provincia y carburante
+(`'00'` = España). Rellena solo los días que faltan. Lo ejecuta el GitHub Action
+`ingest-daily-history` una vez al día ([ADR 0003](../docs/decisiones/0003-historico-diario-por-provincia.md)).
+
+```bash
+# Probar sin base de datos
+.venv/bin/python -m onda_workers.daily_history --dry-run --since 2025-11-03 --until 2025-11-03
+# Carga inicial en tandas (cada tanda continúa donde lo dejó la anterior)
+gh workflow run ingest-daily-history.yml -f limit=1200
+```
+
 ```bash
 cd workers
 python -m venv .venv && .venv/bin/pip install -e '.[dev]'

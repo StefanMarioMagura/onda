@@ -149,3 +149,17 @@ def test_parse_snapshot_rejects_empty(payload):
     payload["ListaEESSPrecio"] = []
     with pytest.raises(MinisterioError):
         parse_snapshot(payload)
+
+
+# --- TLS ------------------------------------------------------------------
+
+def test_ssl_context_accepts_ministry_legacy_ciphers_and_still_verifies():
+    import ssl
+    from onda_workers.ministerio import LEGACY_CIPHERS, ssl_context
+
+    context = ssl_context()
+    names = {c["name"] for c in context.get_ciphers()}
+    assert set(LEGACY_CIPHERS) <= names
+    assert "ECDHE-RSA-AES256-GCM-SHA384" in names       # defaults are kept
+    assert context.verify_mode == ssl.CERT_REQUIRED
+    assert context.check_hostname

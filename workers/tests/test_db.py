@@ -1,13 +1,8 @@
 """Integration tests for store_snapshot against a real Postgres + PostGIS.
 
-Skipped unless TEST_DATABASE_URL points to a disposable database (they
-create and drop the schema). Example with Docker:
-
-    docker run --rm -d -p 54329:5432 -e POSTGRES_PASSWORD=test postgis/postgis:17-3.5
-    TEST_DATABASE_URL=postgresql://postgres:test@localhost:54329/postgres pytest
+Skipped unless TEST_DATABASE_URL is set; see conftest.py.
 """
 
-import os
 from dataclasses import replace
 from datetime import timedelta
 from decimal import Decimal
@@ -18,36 +13,11 @@ import pytest
 from onda_workers.db import store_snapshot
 from onda_workers.ministerio import Price, parse_snapshot
 
-psycopg = pytest.importorskip("psycopg")
+from .conftest import requires_db
 
-DB_URL = os.environ.get("TEST_DATABASE_URL")
-pytestmark = pytest.mark.skipif(not DB_URL, reason="TEST_DATABASE_URL not set")
+pytestmark = requires_db
 
-ROOT = Path(__file__).resolve().parents[2]
-MIGRATIONS = sorted((ROOT / "supabase" / "migrations").glob("*.sql"))
 FIXTURE = Path(__file__).parent / "fixtures" / "estaciones_sample.json"
-
-# Minimal stand-ins for what Supabase provides, so the migration runs on vanilla Postgres.
-# The postgis/postgis image pre-installs PostGIS in `public`; Supabase uses `extensions`.
-SUPABASE_SHIM = """
-drop extension if exists postgis_tiger_geocoder, postgis_topology, postgis cascade;
-create schema if not exists extensions;
-do $$ begin
-  if not exists (select from pg_roles where rolname = 'anon') then create role anon; end if;
-  if not exists (select from pg_roles where rolname = 'authenticated') then create role authenticated; end if;
-end $$;
-"""
-
-
-@pytest.fixture
-def conn():
-    with psycopg.connect(DB_URL, autocommit=True) as c:
-        c.execute("drop table if exists public.precios, public.gasolineras, public.capturas cascade")
-        c.execute(SUPABASE_SHIM)
-        for migration in MIGRATIONS:
-            c.execute(migration.read_text())
-        c.autocommit = False
-        yield c
 
 
 @pytest.fixture
