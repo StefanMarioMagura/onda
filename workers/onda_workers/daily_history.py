@@ -128,20 +128,29 @@ def loaded_days(conn: psycopg.Connection, since: date, until: date) -> set[date]
 
 
 def store_day(conn: psycopg.Connection, rows: list[DailyPrice]) -> int:
-    """Insert one day's rows atomically. Rows already stored are left untouched."""
+    """Insert one day's rows atomically. Rows already stored are left untouched.
+
+    All rows go in a single statement (one array per column) instead of one
+    INSERT per row: from a GitHub runner each round trip to Supabase costs
+    ~100 ms, which made 211 separate inserts the slowest part of the job.
+    """
+    columns = list(zip(*(
+        (r.day, r.province_id, r.fuel, r.avg_price, r.median_price,
+         r.min_price, r.max_price, r.station_count)
+        for r in rows
+    ))) or [[]] * 8
     with conn.transaction(), conn.cursor() as cur:
-        cur.executemany(
+        cur.execute(
             """
             insert into public.precios_diarios
               (day, province_id, fuel, avg_price, median_price, min_price, max_price, station_count)
-            values (%s, %s, %s, %s, %s, %s, %s, %s)
+            select * from unnest(
+              %s::date[], %s::text[], %s::text[], %s::numeric[],
+              %s::numeric[], %s::numeric[], %s::numeric[], %s::integer[]
+            )
             on conflict do nothing
             """,
-            [
-                (r.day, r.province_id, r.fuel, r.avg_price, r.median_price,
-                 r.min_price, r.max_price, r.station_count)
-                for r in rows
-            ],
+            [list(c) for c in columns],
         )
         return cur.rowcount
 
@@ -166,6 +175,7 @@ def run(days: list[date], conn: psycopg.Connection | None) -> int:
     """Load each day; return the number of days that failed."""
     failed = consecutive = 0
     for i, day in enumerate(days, 1):
+        started = time.monotonic()
         try:
             rows = aggregate(fetch_day(day), day)
         except (requests.RequestException, MinisterioError, ValueError) as e:
@@ -177,10 +187,13 @@ def run(days: list[date], conn: psycopg.Connection | None) -> int:
                 return failed + len(days) - i
             continue
         consecutive = 0
+        fetched = time.monotonic()
         national = next((r for r in rows if (r.province_id, r.fuel) == (NATIONAL, "gasoleo_a")), None)
         stored = store_day(conn, rows) if conn else 0
-        log.info("[%d/%d] %s: %d rows%s, gasóleo A España %s €/l", i, len(days), day, len(rows),
-                 "" if conn else " (dry run)", national.avg_price if national else "?")
+        log.info("[%d/%d] %s: %d rows stored%s, gasóleo A España %s €/l (download %.1f s, db %.1f s)",
+                 i, len(days), day, stored, "" if conn else " (dry run)",
+                 national.avg_price if national else "?",
+                 fetched - started, time.monotonic() - fetched)
         time.sleep(PAUSE_SECONDS)
     return failed
 
