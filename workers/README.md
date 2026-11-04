@@ -2,7 +2,8 @@
 
 ## Ingesta de precios (`onda_workers.ingest_prices`)
 Descarga el snapshot del Ministerio y guarda en Supabase las estaciones y los precios que
-han cambiado. Lo ejecuta el GitHub Action `ingest-prices` cada 30 min.
+han cambiado. Lo ejecuta el GitHub Action `ingest-prices` cada 30 min, que lanza pg_cron desde
+Supabase ([ADR 0002](../docs/decisiones/0002-disparo-de-la-ingesta.md)).
 Diseño: [docs/decisiones/0001-historico-de-precios.md](../docs/decisiones/0001-historico-de-precios.md).
 
 ```bash
@@ -25,3 +26,13 @@ DATABASE_URL='postgresql://postgres.<ref>:<password>@aws-0-<region>.pooler.supab
 - `SUPABASE_DB_URL`: cadena de conexión del **pooler** (Project Settings → Database →
   Connection string → Session pooler). Los runners de GitHub no tienen IPv6, así que el host
   directo `db.<ref>.supabase.co` no funciona.
+
+### Secreto en Supabase Vault
+- `github_actions_token`: token *fine-grained* de GitHub (solo este repositorio,
+  permiso **Actions: Read and write**). Lo usa pg_cron para lanzar `ingest-prices`.
+  Se crea o renueva en el SQL Editor de Supabase:
+  ```sql
+  select vault.create_secret('<token>', 'github_actions_token');            -- crear
+  select vault.update_secret(id, '<token>') from vault.secrets
+    where name = 'github_actions_token';                                    -- renovar
+  ```
