@@ -9,14 +9,16 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-dev = ["pytest>=8"]
+# Kept out of the base install so the 30-min ingestion stays light.
+model = ["pandas>=2.2", "scikit-learn>=1.5"]
+dev = ["pytest>=8", "onda-workers[model]"]
 
 [build-system]
 requires = ["setuptools>=69"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools]
-packages = ["onda_workers"]
+packages = ["onda_workers", "onda_workers.semaforo"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
