@@ -139,3 +139,37 @@ def test_store_day_does_not_touch_live_tables(conn, snapshot):
     store_day(conn, aggregate(snapshot, DAY))
     assert conn.execute("select count(*) from public.precios").fetchone()[0] == 0
 
+
+
+# --- run (orchestration, downloads simulated) ------------------------------
+
+def test_run_counts_failed_days_and_keeps_going(monkeypatch, snapshot):
+    from onda_workers import daily_history
+    from onda_workers.ministerio import MinisterioError
+
+    bad = {date(2025, 11, 2)}
+
+    def fake_fetch(day):
+        if day in bad:
+            raise MinisterioError("broken day")
+        return replace(snapshot, timestamp=snapshot.timestamp.replace(year=day.year, month=day.month, day=day.day))
+
+    monkeypatch.setattr(daily_history, "fetch_day", fake_fetch)
+    days = days_between(date(2025, 11, 1), date(2025, 11, 4))
+    assert daily_history.run(days, None, workers=2) == 1
+
+
+def test_run_stops_after_consecutive_failures(monkeypatch):
+    from onda_workers import daily_history
+    from onda_workers.ministerio import MinisterioError
+
+    calls = []
+
+    def always_fails(day):
+        calls.append(day)
+        raise MinisterioError("down")
+
+    monkeypatch.setattr(daily_history, "fetch_day", always_fails)
+    days = days_between(date(2025, 1, 1), date(2025, 12, 31))
+    assert daily_history.run(days, None, workers=1) == len(days)   # nothing loaded
+    assert len(calls) < 10                                          # gave up early

@@ -16,8 +16,20 @@ Descarga del endpoint histórico del Ministerio los precios de cada día desde 2
 # Probar sin base de datos
 .venv/bin/python -m onda_workers.daily_history --dry-run --since 2025-11-03 --until 2025-11-03
 # Carga inicial en tandas (cada tanda continúa donde lo dejó la anterior)
-gh workflow run ingest-daily-history.yml -f limit=1200
+gh workflow run ingest-daily-history.yml
 ```
+
+## Brent y EUR/USD (`onda_workers.brent`)
+Brent diario de la EIA (serie `RBRTE`, $/barril) convertido a euros con el cambio de referencia
+del BCE. Guarda en `brent_diario`; relee los últimos 30 días en cada ejecución. Lo ejecuta el
+GitHub Action `ingest-brent` a diario ([ADR 0004](../docs/decisiones/0004-brent-y-cambio.md)).
+La EIA publica una vez por semana: el último dato suele tener entre 5 y 9 días.
+
+```bash
+EIA_API_KEY=... .venv/bin/python -m onda_workers.brent --dry-run --since 2025-12-01
+```
+
+## Desarrollo
 
 ```bash
 cd workers
@@ -39,6 +51,7 @@ DATABASE_URL='postgresql://postgres.<ref>:<password>@aws-0-<region>.pooler.supab
 - `SUPABASE_DB_URL`: cadena de conexión del **pooler** (Project Settings → Database →
   Connection string → Session pooler). Los runners de GitHub no tienen IPv6, así que el host
   directo `db.<ref>.supabase.co` no funciona.
+- `EIA_API_KEY`: clave gratuita de la API de la EIA (https://www.eia.gov/opendata/register.php).
 
 ### Secreto en Supabase Vault
 - `github_actions_token`: token *fine-grained* de GitHub (solo este repositorio,

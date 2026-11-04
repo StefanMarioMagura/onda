@@ -6,10 +6,6 @@ on:
     # caught up by the next one.
     - cron: "23 6 * * *"
   workflow_dispatch:
-    inputs:
-      limit:
-        description: "Max days to load in this run (backfill in chunks)"
-        default: "1200"
 
 concurrency:
   group: ingest-daily-history
@@ -18,7 +14,8 @@ concurrency:
 jobs:
   ingest:
     runs-on: ubuntu-latest
-    # ~11 s per day: 1200 days ≈ 3.7 h, under GitHub's 6 h job limit.
+    # The worker stops by itself after 320 min (--max-minutes) and the next run
+    # continues; the initial backfill needs a few runs. GitHub's limit is 6 h.
     timeout-minutes: 340
     defaults:
       run:
@@ -38,4 +35,4 @@ jobs:
       - name: Load missing days
         env:
           DATABASE_URL: ${{ secrets.SUPABASE_DB_URL }}
-        run: python -m onda_workers.daily_history --limit "${{ inputs.limit || '1200' }}"
+        run: python -m onda_workers.daily_history --max-minutes 320

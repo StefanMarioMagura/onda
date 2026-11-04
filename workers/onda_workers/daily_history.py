@@ -22,6 +22,7 @@ import statistics
 import sys
 import time
 from collections import defaultdict
+from concurrent.futures import FIRST_COMPLETED, Future, ThreadPoolExecutor, wait
 from dataclasses import dataclass
 from datetime import date, datetime, timedelta
 from decimal import Decimal
@@ -47,7 +48,9 @@ DEFAULT_SINCE = date(2019, 1, 1)
 MIN_STATIONS = 5000
 # Stop if the Ministry keeps failing: it is down or blocking us.
 MAX_CONSECUTIVE_FAILURES = 5
-PAUSE_SECONDS = 1.0
+# Parallel downloads: enough to hide the slow transfer from GitHub runners,
+# few enough not to load the Ministry's servers.
+DEFAULT_WORKERS = 3
 
 
 @dataclass(frozen=True)
@@ -166,36 +169,81 @@ def _parse_args(argv: list[str] | None) -> argparse.Namespace:
                         help="last day to load (default: yesterday, Madrid time)")
     parser.add_argument("--limit", type=int, default=None,
                         help="load at most N missing days (to split a long backfill into runs)")
+    parser.add_argument("--max-minutes", type=float, default=None,
+                        help="stop cleanly after this many minutes (GitHub jobs are cut at 6 h)")
+    parser.add_argument("--workers", type=int, default=DEFAULT_WORKERS,
+                        help="parallel downloads")
     parser.add_argument("--dry-run", action="store_true",
                         help="download and aggregate, but do not touch the database")
     return parser.parse_args(argv)
 
 
-def run(days: list[date], conn: psycopg.Connection | None) -> int:
-    """Load each day; return the number of days that failed."""
-    failed = consecutive = 0
-    for i, day in enumerate(days, 1):
-        started = time.monotonic()
-        try:
-            rows = aggregate(fetch_day(day), day)
-        except (requests.RequestException, MinisterioError, ValueError) as e:
-            failed += 1
-            consecutive += 1
-            log.warning("%s: failed (%s)", day, e)
-            if consecutive >= MAX_CONSECUTIVE_FAILURES:
-                log.error("%d failures in a row; stopping", consecutive)
-                return failed + len(days) - i
-            continue
-        consecutive = 0
-        fetched = time.monotonic()
-        national = next((r for r in rows if (r.province_id, r.fuel) == (NATIONAL, "gasoleo_a")), None)
-        stored = store_day(conn, rows) if conn else 0
-        log.info("[%d/%d] %s: %d rows stored%s, gasóleo A España %s €/l (download %.1f s, db %.1f s)",
-                 i, len(days), day, stored, "" if conn else " (dry run)",
-                 national.avg_price if national else "?",
-                 fetched - started, time.monotonic() - fetched)
-        time.sleep(PAUSE_SECONDS)
-    return failed
+def _download(day: date) -> tuple[list[DailyPrice], float]:
+    started = time.monotonic()
+    rows = aggregate(fetch_day(day), day)
+    return rows, time.monotonic() - started
+
+
+def run(
+    days: list[date],
+    conn: psycopg.Connection | None,
+    workers: int = DEFAULT_WORKERS,
+    max_minutes: float | None = None,
+) -> int:
+    """Load the given days; return how many were not loaded (failed or left for later).
+
+    Downloads run in `workers` threads (each day is a ~12 MB response, and from
+    a GitHub runner one download takes ~35 s). Storing happens in this thread
+    only, since a psycopg connection must not be shared between threads.
+    """
+    deadline = time.monotonic() + max_minutes * 60 if max_minutes else None
+    loaded = consecutive = 0
+    pending_days = iter(days)
+    in_flight: dict[Future, date] = {}
+
+    with ThreadPoolExecutor(max_workers=workers) as pool:
+        def submit_next() -> bool:
+            """Queue the next day; False when there are no days left."""
+            day = next(pending_days, None)
+            if day is None:
+                return False
+            in_flight[pool.submit(_download, day)] = day
+            return True
+
+        # Keep at most `workers` downloads queued, so stopping (failures or
+        # time budget) takes effect right away instead of after the whole list.
+        for _ in range(workers):
+            submit_next()
+
+        stop = False
+        while in_flight and not stop:
+            done, _ = wait(in_flight, return_when=FIRST_COMPLETED)
+            for future in done:
+                day = in_flight.pop(future)
+                try:
+                    rows, seconds = future.result()
+                except (requests.RequestException, MinisterioError, ValueError) as e:
+                    consecutive += 1
+                    log.warning("%s: failed (%s)", day, e)
+                    if consecutive >= MAX_CONSECUTIVE_FAILURES:
+                        log.error("%d failures in a row; stopping", consecutive)
+                        stop = True
+                    continue
+                consecutive = 0
+                stored = store_day(conn, rows) if conn else 0
+                loaded += 1
+                national = next(
+                    (r for r in rows if (r.province_id, r.fuel) == (NATIONAL, "gasoleo_a")), None)
+                log.info("[%d/%d] %s: %d rows stored%s, gasóleo A España %s €/l (download %.1f s)",
+                         loaded, len(days), day, stored, "" if conn else " (dry run)",
+                         national.avg_price if national else "?", seconds)
+            if deadline and time.monotonic() > deadline:
+                log.info("Time budget of %s min used up; the next run continues", max_minutes)
+                stop = True
+            while not stop and len(in_flight) < workers and submit_next():
+                pass
+        # Downloads still in flight when stopping are discarded (at most `workers`).
+    return len(days) - loaded
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -207,7 +255,8 @@ def main(argv: list[str] | None = None) -> int:
         return 2
 
     if args.dry_run:
-        return 1 if run(days_between(args.since, until), None) else 0
+        days = days_between(args.since, until)[: args.limit]
+        return 1 if run(days, None, args.workers, args.max_minutes) else 0
 
     database_url = os.environ.get("DATABASE_URL")
     if not database_url:
@@ -223,12 +272,12 @@ def main(argv: list[str] | None = None) -> int:
         log.info("%d days already loaded, %d missing", len(done), len(todo))
         if args.limit is not None:
             todo = todo[: args.limit]
-        failed = run(todo, conn)
+        pending = run(todo, conn, args.workers, args.max_minutes)
 
-    if failed:
-        log.error("%d days failed; re-run to retry them", failed)
-        return 1
-    return 0
+    if pending:
+        log.warning("%d days not loaded yet; the next run will retry them", pending)
+    # Exit 1 only if nothing at all could be loaded: the Ministry is down or blocking us.
+    return 1 if todo and pending == len(todo) else 0
 
 
 if __name__ == "__main__":

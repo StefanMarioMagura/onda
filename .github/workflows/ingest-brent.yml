@@ -1,0 +1,37 @@
+name: Ingest Brent and EUR/USD
+
+on:
+  schedule:
+    # Daily. The EIA publishes Brent weekly and each run re-reads the last
+    # 30 days, so a skipped run loses nothing.
+    - cron: "41 7 * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: ingest-brent
+  cancel-in-progress: false
+
+jobs:
+  ingest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: workers
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: workers/pyproject.toml
+
+      - name: Install
+        run: pip install .
+
+      - name: Load Brent and exchange rate
+        env:
+          DATABASE_URL: ${{ secrets.SUPABASE_DB_URL }}
+          EIA_API_KEY: ${{ secrets.EIA_API_KEY }}
+        run: python -m onda_workers.brent
