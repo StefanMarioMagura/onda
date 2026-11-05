@@ -1,7 +1,9 @@
 # ONDA — contexto del proyecto para Claude Code
 
 ONDA es una app (móvil, web y PC) que explica lo que pasa en el mundo por lo que le cuesta al usuario.
-Feed vertical tipo TikTok, pero finito (5-8 "ondas" al día), útil y sin burbuja política.
+Feed vertical tipo TikTok: primero las 5-8 "ondas" del día y, al terminarlas, un flujo
+infinito "Descubre" (historias de política, ciencia y curiosidades) en texto, audio y clips.
+Público: mayores de 18 años. Sin burbuja política.
 Es mi proyecto final: prioriza código claro, explicable y bien probado sobre trucos.
 
 ## Las tres capas
@@ -41,7 +43,11 @@ orillas, preguntas, predicciones, interacciones.
 - Nunca secretos en el código: variables de entorno y GitHub Secrets.
 - Cada cambio de esquema = una migración en /supabase/migrations.
 - Tests para la lógica del semáforo, el cálculo de ahorro y los parsers de las fuentes.
-- El feed tiene final. Nada de scroll infinito ni recomendación por afinidad política.
+- Feed: las ondas del día van primero y después sigue "Descubre" sin final. Nunca
+  recomendación por afinidad política.
+- Diseño "neón nocturno" y mecánicas de enganche: ver /docs/diseno/principios.md.
+  Puntos y rachas nunca se compran ni se canjean por dinero (si no, sería juego regulado).
+  Nada de cifras falsas, urgencia falsa ni bajas difíciles (DSA art. 25).
 - Noticias: solo titular, enlace y resumen propio; nunca el texto completo de un medio.
 - Ubicación del usuario solo aproximada (RGPD).
 

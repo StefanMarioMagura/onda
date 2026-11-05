@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../app/theme.dart';
+import '../domain/discover.dart';
 import '../domain/fuel.dart';
 import '../domain/wave.dart';
 
@@ -15,6 +16,112 @@ final pocketProvider = Provider.family<PocketSnapshot, Fuel>((ref, fuel) =>
 
 /// Euros saved this month by following the semáforo (sample).
 final monthlySavingProvider = Provider<double>((ref) => 4.20);
+
+/// Pool the endless "Descubre" stream is built from (see discoverAt).
+final discoverPoolProvider = Provider<List<DiscoverItem>>((ref) => _discover);
+
+const _discover = <DiscoverItem>[
+  StoryItem(
+    id: 'campoamor',
+    topic: 'Historia política',
+    year: '1931',
+    title: 'Clara Campoamor ganó el voto de las mujeres casi sola',
+    body: 'En las Cortes de 1931 defendió el sufragio femenino frente a buena parte de su propio '
+        'partido. El 1 de octubre se aprobó por 161 votos a 121, y en 1933 las españolas votaron '
+        'por primera vez en unas elecciones generales.',
+  ),
+  QuizItem(
+    id: 'barril',
+    topic: 'Quiz',
+    question: '¿Cuántos litros tiene un barril de petróleo?',
+    options: ['100 litros', '159 litros', '200 litros'],
+    correct: 1,
+    explanation: 'Un barril son 42 galones estadounidenses: unos 159 litros. Por eso un barril a 75 \$ '
+        'son menos de 50 céntimos por litro de crudo.',
+  ),
+  ClipItem(
+    id: 'diesel-2022',
+    topic: 'Clip · Economía',
+    title: 'Por qué el gasóleo superó a la gasolina',
+    beats: [
+      '2022',
+      'El gasóleo pasó a costar más que la gasolina',
+      'Rusia era el gran proveedor de diésel de Europa',
+      'Las sanciones cortaron ese suministro',
+      'Menos oferta, el mismo consumo',
+      'Resultado: el precio se disparó',
+    ],
+  ),
+  StoryItem(
+    id: 'salas',
+    topic: 'Ciencia',
+    year: '1989',
+    title: 'La patente de Margarita Salas fue la más rentable del CSIC',
+    body: 'Estudiando un virus que infecta bacterias, su equipo descubrió una enzima, la ADN '
+        'polimerasa del fago phi29, capaz de copiar ADN de forma muy eficaz. Hoy se usa en '
+        'laboratorios de todo el mundo para analizar muestras genéticas diminutas.',
+  ),
+  PredictionItem(
+    id: 'gasoleo-semana',
+    topic: 'Predicción',
+    question: '¿Subirá el gasóleo más de 1 céntimo esta semana?',
+    stake: 20,
+    resolvesOn: 'el miércoles 11',
+  ),
+  FactItem(
+    id: 'gasolineras',
+    topic: 'Dato',
+    figure: '11.457',
+    text: 'gasolineras publicaron sus precios hoy en España. ONDA las revisa cada media hora.',
+    source: 'Ministerio para la Transición Ecológica',
+  ),
+  StoryItem(
+    id: 'cajal',
+    topic: 'Ciencia',
+    year: '1906',
+    title: 'Ramón y Cajal dibujó el cerebro antes de que pudiera fotografiarse',
+    body: 'Con un microscopio y tinta china demostró que el sistema nervioso está formado por '
+        'células independientes, las neuronas. Ganó el Nobel en 1906 y sus dibujos aún se usan '
+        'para enseñar neurociencia.',
+  ),
+  QuizItem(
+    id: 'impuestos',
+    topic: 'Quiz',
+    question: '¿Qué parte de lo que pagas por la gasolina son impuestos?',
+    options: ['Una cuarta parte', 'Alrededor de la mitad', 'Tres cuartas partes'],
+    correct: 1,
+    explanation: 'Entre el impuesto especial sobre hidrocarburos y el IVA del 21 %, los impuestos '
+        'suelen rondar la mitad del precio final.',
+  ),
+  ClipItem(
+    id: 'euribor',
+    topic: 'Clip · Tu dinero',
+    title: 'El euríbor en 20 segundos',
+    beats: [
+      'Euríbor',
+      'El interés al que se prestan dinero los bancos europeos',
+      'Casi todas las hipotecas variables van atadas a él',
+      'Sube el euríbor: sube tu cuota',
+      'Baja el euríbor: baja tu cuota',
+    ],
+  ),
+  StoryItem(
+    id: 'reforma-politica',
+    topic: 'Historia política',
+    year: '1976',
+    title: 'Las Cortes de Franco votaron su propio final',
+    body: 'En noviembre de 1976, las Cortes franquistas aprobaron la Ley para la Reforma Política, '
+        'que abría paso a elecciones democráticas. En diciembre, el 94 % de los votantes la '
+        'respaldó en referéndum.',
+  ),
+  FactItem(
+    id: 'renovables',
+    topic: 'Dato',
+    figure: '57 %',
+    text: 'de la electricidad que se generó en España en 2024 fue renovable: más de la mitad, por segundo año seguido.',
+    source: 'Red Eléctrica',
+  ),
+];
 
 const _waves = [
   Wave(

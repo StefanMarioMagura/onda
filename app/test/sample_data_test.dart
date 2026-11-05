@@ -2,13 +2,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:onda/app/theme.dart';
 import 'package:onda/data/sample_data.dart';
+import 'package:onda/domain/discover.dart';
 import 'package:onda/domain/fuel.dart';
 
 void main() {
   final container = ProviderContainer();
   final waves = container.read(todayWavesProvider);
 
-  test('today has 5 to 8 ondas (the feed is finite)', () {
+  test('today has 5 to 8 ondas before Descubre starts', () {
     expect(waves.length, inInclusiveRange(5, 8));
   });
 
@@ -37,6 +38,16 @@ void main() {
       final pocket = container.read(pocketProvider(fuel));
       expect(pocket.last30Days, hasLength(30));
       expect(pocket.averagePrice, closeTo(pocket.last30Days.last, 1e-9));
+    }
+  });
+
+  test('Descubre mixes every format and its quizzes are well formed', () {
+    final pool = container.read(discoverPoolProvider);
+    expect(pool.map((i) => i.runtimeType).toSet(),
+        {StoryItem, ClipItem, QuizItem, PredictionItem, FactItem});
+    expect(pool.map((i) => i.id).toSet().length, pool.length, reason: 'ids must be unique');
+    for (final quiz in pool.whereType<QuizItem>()) {
+      expect(quiz.correct, inInclusiveRange(0, quiz.options.length - 1), reason: quiz.id);
     }
   });
 }

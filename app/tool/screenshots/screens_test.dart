@@ -6,72 +6,71 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:onda/main.dart';
 
-Future<void> _loadFont(String family, List<String> paths) async {
-  final loader = FontLoader(family);
-  for (final path in paths) {
-    loader.addFont(Future.value(ByteData.sublistView(File(path).readAsBytesSync())));
-  }
+import '../../test/helpers.dart';
+
+Future<void> _loadFont(String family, String path) async {
+  final loader = FontLoader(family)..addFont(Future.value(ByteData.sublistView(File(path).readAsBytesSync())));
   await loader.load();
 }
 
-String get _flutterRoot => Platform.environment['FLUTTER_ROOT']!;
-
-Future<void> _pump(WidgetTester tester) async {
-  tester.view.physicalSize = const Size(1170, 2532);
-  tester.view.devicePixelRatio = 3;
-  addTearDown(tester.view.reset);
-  await tester.pumpWidget(const ProviderScope(child: OndaApp()));
-  await tester.pumpAndSettle();
-}
-
-Future<void> _tapForward(WidgetTester tester, int times) async {
-  for (var i = 0; i < times; i++) {
-    await tester.tapAt(const Offset(300, 450));
-    await tester.pumpAndSettle();
-  }
+Future<void> _settle(WidgetTester tester) async {
+  // Some screens animate forever (milestone arrow, clips): advance time instead of settling.
+  await tester.pump();
+  await tester.pump(const Duration(milliseconds: 1500));
 }
 
 void main() {
   setUpAll(() async {
-    await _loadFont('Newsreader', ['assets/fonts/Newsreader.ttf']);
-    await _loadFont('IBMPlexSans', ['assets/fonts/IBMPlexSans.ttf']);
-    await _loadFont('MaterialIcons', ['$_flutterRoot/bin/cache/artifacts/material_fonts/MaterialIcons-Regular.otf']);
+    await _loadFont('Archivo', 'assets/fonts/Archivo.ttf');
+    await _loadFont('MaterialIcons',
+        '${Platform.environment['FLUTTER_ROOT']}/bin/cache/artifacts/material_fonts/MaterialIcons-Regular.otf');
   });
 
-  Future<void> shot(WidgetTester tester, String name) =>
-      expectLater(find.byType(OndaApp), matchesGoldenFile('out/$name.png'));
+  Future<void> shot(String name) => expectLater(find.byType(MaterialApp), matchesGoldenFile('out/$name.png'));
 
   testWidgets('feed', (tester) async {
-    await _pump(tester);
-    await shot(tester, '1_onda_que_paso');
-    await _tapForward(tester, 2);
-    await shot(tester, '2_onda_como_te_llega');
-    await _tapForward(tester, 1);
-    await shot(tester, '3_onda_que_haces');
-    await _tapForward(tester, 2);
-    await shot(tester, '4_pais_por_que_importa');
-    await tester.tap(find.text('Las dos orillas'));
+    await pumpApp(tester);
+    await shot('01_onda_que_paso');
+    await tapForward(tester);
+    await tapForward(tester);
+    await shot('02_onda_como_te_llega');
+    await tapForward(tester);
+    await shot('03_onda_que_haces');
+    await tester.tapAt(const Offset(250, 250)); // completes the onda
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300)); // mid-celebration
+    await shot('04_celebracion');
     await tester.pumpAndSettle();
-    await shot(tester, '5_dos_orillas');
+    await tapForward(tester);
+    await tester.tap(find.text('LAS DOS ORILLAS'));
+    await tester.pumpAndSettle();
+    await shot('05_dos_orillas');
   });
 
-  testWidgets('end of feed', (tester) async {
-    await _pump(tester);
-    await _tapForward(tester, 20);
-    await shot(tester, '6_fin');
+  testWidgets('milestone and descubre', (tester) async {
+    await pumpApp(tester);
+    for (var i = 0; i < 19; i++) {
+      await tapForward(tester);
+    }
+    await tapForward(tester, settle: false);
+    await tester.pump(const Duration(seconds: 2));
+    await shot('06_hito');
+    for (var i = 0; i < 6; i++) {
+      await tester.drag(find.byType(PageView).first, const Offset(0, -700));
+      await _settle(tester);
+      await shot('${(7 + i).toString().padLeft(2, '0')}_descubre_${i + 1}');
+    }
   });
 
   testWidgets('bolsillo', (tester) async {
-    await _pump(tester);
+    await pumpApp(tester);
     await tester.tap(find.text('Tu bolsillo'));
     await tester.pumpAndSettle();
-    await shot(tester, '7_bolsillo');
+    await shot('13_bolsillo');
     await tester.drag(find.byType(ListView), const Offset(0, -700));
     await tester.pumpAndSettle();
-    await shot(tester, '8_bolsillo_gasolineras');
+    await shot('14_bolsillo_gasolineras');
   });
 }

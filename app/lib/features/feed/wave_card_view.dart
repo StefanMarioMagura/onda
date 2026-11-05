@@ -2,9 +2,10 @@ import 'package:flutter/material.dart';
 
 import '../../app/theme.dart';
 import '../../domain/wave.dart';
+import '../shared/side_rail.dart';
 import 'two_shores_sheet.dart';
 
-/// One card of an onda, laid out like a page of a newspaper.
+/// One card of an onda.
 class WaveCardView extends StatelessWidget {
   const WaveCardView({
     super.key,
@@ -22,72 +23,106 @@ class WaveCardView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final color = wave.layer.color;
-    return LayoutBuilder(
-      builder: (context, constraints) => SingleChildScrollView(
-        physics: const ClampingScrollPhysics(),
-        child: ConstrainedBox(
-          constraints: BoxConstraints(minHeight: constraints.maxHeight),
-          child: IntrinsicHeight(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text.rich(
-                  TextSpan(children: [
-                    TextSpan(text: wave.layer.etiqueta.toUpperCase(), style: OndaText.antetitulo(color: color)),
-                    TextSpan(text: '   ${step.index + 1}/4 · ${step.label.toUpperCase()}',
-                        style: OndaText.antetitulo()),
-                  ]),
+    return Stack(
+      children: [
+        LayoutBuilder(
+          builder: (context, constraints) => SingleChildScrollView(
+            physics: const ClampingScrollPhysics(),
+            child: ConstrainedBox(
+              constraints: BoxConstraints(minHeight: constraints.maxHeight),
+              child: IntrinsicHeight(
+                child: Padding(
+                  padding: const EdgeInsets.only(right: 52),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Wrap(
+                        spacing: 10,
+                        runSpacing: 6,
+                        crossAxisAlignment: WrapCrossAlignment.center,
+                        children: [
+                          LayerPill(label: wave.layer.etiqueta, color: color),
+                          Text('${step.index + 1}/4 · ${step.label.toUpperCase()}', style: OndaText.etiqueta()),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      Text(card.headline, style: OndaText.impacto(step == WaveStep.whatHappened ? 46 : 38)),
+                      const SizedBox(height: 16),
+                      Text(card.body, style: OndaText.cuerpo(17, color: Palette.textSoft)),
+                      if (card.figure != null) ...[
+                        const SizedBox(height: 26),
+                        BigFigure(value: card.figure!.value, caption: card.figure!.caption, color: color),
+                      ],
+                      if (card.actions.isNotEmpty) ...[
+                        const SizedBox(height: 22),
+                        _Actions(actions: card.actions, color: color),
+                      ],
+                      if (wave.shores != null && step == WaveStep.whyItMatters) ...[
+                        const SizedBox(height: 22),
+                        _ShoresButton(onTap: () => showTwoShores(context, wave.shores!)),
+                      ],
+                      const Spacer(),
+                      const SizedBox(height: 20),
+                      if (card.teaser != null) _Teaser(text: card.teaser!, color: color),
+                      if (isLastWaveCard) _Teaser(text: 'Toca para completar la onda', color: Palette.gold, reward: true),
+                      const SizedBox(height: 12),
+                      Text('Fuente: ${wave.source}', style: OndaText.cuerpo(11, color: Palette.textFaint)),
+                      const SizedBox(height: 16),
+                    ],
+                  ),
                 ),
-                const SizedBox(height: 14),
-                Text(card.headline, style: OndaText.titular(step == WaveStep.whatHappened ? 36 : 30)),
-                const SizedBox(height: 18),
-                Text(card.body, style: OndaText.cuerpo(17, color: Palette.ink.withValues(alpha: 0.86))),
-                if (card.figure != null) ...[
-                  const SizedBox(height: 28),
-                  _Figure(figure: card.figure!, color: color),
-                ],
-                if (card.actions.isNotEmpty) ...[
-                  const SizedBox(height: 24),
-                  _Actions(actions: card.actions, color: color),
-                ],
-                if (wave.shores != null && step == WaveStep.whyItMatters) ...[
-                  const SizedBox(height: 24),
-                  _ShoresButton(onTap: () => showTwoShores(context, wave.shores!)),
-                ],
-                const Spacer(),
-                const SizedBox(height: 24),
-                if (card.teaser != null) _Teaser(text: card.teaser!),
-                if (isLastWaveCard) const _Teaser(text: 'Desliza hacia arriba para la siguiente', up: true),
-                const SizedBox(height: 14),
-                Text('Fuente: ${wave.source}', style: OndaText.cuerpo(11, color: Palette.inkFaint)),
-                const SizedBox(height: 18),
-              ],
+              ),
             ),
           ),
         ),
-      ),
+        Positioned(
+          right: 0,
+          bottom: 60,
+          child: SideRail(id: '${wave.id}:${step.index}', narration: '${card.headline}. ${card.body}'),
+        ),
+      ],
     );
   }
 }
 
-class _Figure extends StatelessWidget {
-  const _Figure({required this.figure, required this.color});
-  final KeyFigure figure;
+/// Coloured label with the content layer ("TU BOLSILLO").
+class LayerPill extends StatelessWidget {
+  const LayerPill({super.key, required this.label, required this.color});
+  final String label;
   final Color color;
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.only(left: 16),
-      decoration: BoxDecoration(border: Border(left: BorderSide(color: color, width: 3))),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(figure.value, style: OndaText.cifra(64, color: color)),
-          const SizedBox(height: 6),
-          Text(figure.caption, style: OndaText.cuerpo(14, color: Palette.inkSoft)),
-        ],
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.14),
+        borderRadius: BorderRadius.circular(4),
       ),
+      child: Text(label.toUpperCase(), style: OndaText.etiqueta(color: color)),
+    );
+  }
+}
+
+/// A key figure in big glowing type.
+class BigFigure extends StatelessWidget {
+  const BigFigure({super.key, required this.value, required this.caption, required this.color, this.size = 92});
+  final String value;
+  final String caption;
+  final Color color;
+  final double size;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(value,
+            style: OndaText.cifra(size, color: color)
+                .copyWith(shadows: [Shadow(color: color.withValues(alpha: 0.45), blurRadius: 28)])),
+        const SizedBox(height: 4),
+        Text(caption.toUpperCase(), style: OndaText.etiqueta(color: Palette.textSoft, size: 12)),
+      ],
     );
   }
 }
@@ -101,20 +136,28 @@ class _Actions extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        for (final (i, action) in actions.indexed) ...[
-          const Divider(),
+        for (final (i, action) in actions.indexed)
           Padding(
-            padding: const EdgeInsets.symmetric(vertical: 14),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                SizedBox(width: 32, child: Text('${i + 1}', style: OndaText.cifra(22, color: color))),
-                Expanded(child: Text(action, style: OndaText.cuerpo(16))),
-              ],
+            padding: const EdgeInsets.only(bottom: 10),
+            child: Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(color: Palette.surface, borderRadius: BorderRadius.circular(10)),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    width: 26,
+                    height: 26,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+                    child: Text('${i + 1}', style: OndaText.cifra(14, color: Palette.night)),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(child: Text(action, style: OndaText.cuerpo(15))),
+                ],
+              ),
             ),
           ),
-        ],
-        const Divider(),
       ],
     );
   }
@@ -126,37 +169,32 @@ class _ShoresButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return OutlinedButton(
+    return OutlinedButton.icon(
       onPressed: onTap,
+      icon: const Icon(Icons.compare_arrows_rounded, size: 18),
+      label: Text('LAS DOS ORILLAS', style: OndaText.etiqueta(color: Palette.lime, size: 12)),
       style: OutlinedButton.styleFrom(
-        foregroundColor: Palette.ink,
-        side: const BorderSide(color: Palette.ink),
-        shape: const RoundedRectangleBorder(),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text('Las dos orillas', style: OndaText.cuerpo(15, weight: 600)),
-          const SizedBox(width: 10),
-          Text('cómo lo cuenta cada lado', style: OndaText.cuerpo(13, color: Palette.inkSoft)),
-        ],
+        foregroundColor: Palette.lime,
+        side: const BorderSide(color: Palette.lime),
+        shape: const StadiumBorder(),
+        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
       ),
     );
   }
 }
 
 class _Teaser extends StatelessWidget {
-  const _Teaser({required this.text, this.up = false});
+  const _Teaser({required this.text, required this.color, this.reward = false});
   final String text;
-  final bool up;
+  final Color color;
+  final bool reward;
 
   @override
   Widget build(BuildContext context) {
     return Row(
       children: [
-        Expanded(child: Text(text, style: OndaText.cuerpo(15, weight: 600))),
-        Icon(up ? Icons.keyboard_arrow_up_rounded : Icons.arrow_forward_rounded, size: 20),
+        Expanded(child: Text(text, style: OndaText.cuerpo(16, weight: 700, color: color))),
+        Icon(reward ? Icons.bolt_rounded : Icons.arrow_forward_rounded, size: 22, color: color),
       ],
     );
   }

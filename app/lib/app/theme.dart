@@ -1,118 +1,129 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 
-/// Editorial palette. See docs/diseno/principios.md: every colour means something.
+/// "Neón nocturno" palette. See docs/diseno/principios.md.
 abstract final class Palette {
-  static const paper = Color(0xFFF5F2EB);
-  static const paperDeep = Color(0xFFEDE8DD);
-  static const ink = Color(0xFF15140F);
-  static const inkSoft = Color(0xFF5A574E);
-  static const inkFaint = Color(0xFF8C887D);
-  static const rule = Color(0xFFD9D3C5);
+  static const night = Color(0xFF0A0A0B);
+  static const surface = Color(0xFF141416);
+  static const surfaceHigh = Color(0xFF1D1D21);
+  static const line = Color(0xFF2A2A30);
+  static const text = Color(0xFFF4F4F2);
+  static const textSoft = Color(0xFFA3A3A8);
+  static const textFaint = Color(0xFF6B6B72);
 
-  static const verde = Color(0xFF1E8E3E);
-  static const ambar = Color(0xFFD99A00);
-  static const rojo = Color(0xFFC62828);
+  /// Signature colour: everything you can tap, progress, key figures.
+  static const lime = Color(0xFFC6FF00);
+
+  /// Rewards only: points, streak, level.
+  static const gold = Color(0xFFFFC83D);
+
+  static const verde = Color(0xFF00E676);
+  static const ambar = Color(0xFFFFB800);
+  static const rojo = Color(0xFFFF3B5C);
 }
 
-/// ONDA's three layers, each with its own colour.
+/// ONDA's content layers, each with its own neon accent.
 enum Capa {
-  bolsillo('Tu bolsillo', Color(0xFF0B6E4F)),
-  pais('Tu país', Color(0xFF1F3A93)),
-  mundo('El mundo', Color(0xFFB8471E));
+  bolsillo('Tu bolsillo', Palette.lime),
+  pais('Tu país', Color(0xFF3DD9FF)),
+  mundo('El mundo', Color(0xFFFF7A1A)),
+  descubre('Descubre', Color(0xFFFF4FD8));
 
   const Capa(this.etiqueta, this.color);
   final String etiqueta;
   final Color color;
 }
 
-const _serif = 'Newsreader';
-const _sans = 'IBMPlexSans';
+const _family = 'Archivo';
 
-/// Variable fonts: set the weight axis explicitly so every platform renders it.
-List<FontVariation> _weight(double w) => [FontVariation('wght', w)];
+/// Archivo is variable in weight and width: condensed and heavy for impact,
+/// normal width for reading.
+List<FontVariation> _axes(double weight, double width) =>
+    [FontVariation('wght', weight), FontVariation('wdth', width)];
+
+FontWeight _nearest(double weight) => FontWeight.values[((weight / 100).round() - 1).clamp(0, 8)];
 
 abstract final class OndaText {
-  /// Big editorial headline.
-  static TextStyle titular(double size, {Color color = Palette.ink}) => TextStyle(
-        fontFamily: _serif,
+  /// Big condensed headline, sports-app style.
+  static TextStyle impacto(double size, {Color color = Palette.text}) => TextStyle(
+        fontFamily: _family,
         fontSize: size,
-        height: 1.08,
-        letterSpacing: -0.4,
-        fontWeight: FontWeight.w600,
-        fontVariations: [..._weight(600), FontVariation('opsz', 72)],
+        height: 0.98,
+        letterSpacing: -0.2,
+        fontWeight: FontWeight.w800,
+        fontVariations: _axes(800, 62),
         color: color,
       );
 
-  /// Large figures (prices, savings). Serif with tabular numbers.
-  static TextStyle cifra(double size, {Color color = Palette.ink}) => TextStyle(
-        fontFamily: _serif,
+  /// Large figures: condensed, heavy, tabular.
+  static TextStyle cifra(double size, {Color color = Palette.text}) => TextStyle(
+        fontFamily: _family,
         fontSize: size,
         height: 1,
-        letterSpacing: -1,
-        fontWeight: FontWeight.w500,
-        fontVariations: [..._weight(500), FontVariation('opsz', 72)],
+        fontWeight: FontWeight.w800,
+        fontVariations: _axes(800, 75),
         fontFeatures: const [FontFeature.tabularFigures()],
         color: color,
       );
 
-  static TextStyle cuerpo(double size, {Color color = Palette.ink, double weight = 400}) => TextStyle(
-        fontFamily: _sans,
+  static TextStyle cuerpo(double size, {Color color = Palette.text, double weight = 400}) => TextStyle(
+        fontFamily: _family,
         fontSize: size,
-        height: 1.45,
-        fontWeight: FontWeight.values[(weight ~/ 100) - 1],
-        fontVariations: _weight(weight),
+        height: 1.42,
+        fontWeight: _nearest(weight),
+        fontVariations: _axes(weight, 100),
         fontFeatures: const [FontFeature.tabularFigures()],
         color: color,
       );
 
-  /// Small uppercase label above a headline ("antetítulo").
-  static TextStyle antetitulo({Color color = Palette.inkSoft}) => TextStyle(
-        fontFamily: _sans,
-        fontSize: 11,
+  /// Small uppercase label.
+  static TextStyle etiqueta({Color color = Palette.textSoft, double size = 11}) => TextStyle(
+        fontFamily: _family,
+        fontSize: size,
         height: 1.2,
-        letterSpacing: 1.4,
-        fontWeight: FontWeight.w600,
-        fontVariations: _weight(600),
+        letterSpacing: 1.2,
+        fontWeight: FontWeight.w700,
+        fontVariations: _axes(700, 88),
         color: color,
       );
 }
 
 ThemeData ondaTheme() {
-  final scheme = ColorScheme.fromSeed(seedColor: Capa.bolsillo.color).copyWith(
-    surface: Palette.paper,
-    onSurface: Palette.ink,
-    primary: Palette.ink,
-    onPrimary: Palette.paper,
-    outline: Palette.rule,
-    outlineVariant: Palette.rule,
+  final scheme = const ColorScheme.dark(
+    surface: Palette.night,
+    onSurface: Palette.text,
+    primary: Palette.lime,
+    onPrimary: Palette.night,
+    secondary: Palette.gold,
+    outline: Palette.line,
+    outlineVariant: Palette.line,
   );
   return ThemeData(
     useMaterial3: true,
+    brightness: Brightness.dark,
     colorScheme: scheme,
-    scaffoldBackgroundColor: Palette.paper,
-    fontFamily: _sans,
+    scaffoldBackgroundColor: Palette.night,
+    fontFamily: _family,
     splashFactory: NoSplash.splashFactory,
-    dividerTheme: const DividerThemeData(color: Palette.rule, thickness: 1, space: 1),
+    dividerTheme: const DividerThemeData(color: Palette.line, thickness: 1, space: 1),
     navigationBarTheme: NavigationBarThemeData(
-      backgroundColor: Palette.paper,
+      backgroundColor: Palette.night,
       surfaceTintColor: Colors.transparent,
       indicatorColor: Colors.transparent,
-      height: 64,
-      labelTextStyle: WidgetStateProperty.resolveWith((states) => OndaText.cuerpo(
-            11,
-            weight: states.contains(WidgetState.selected) ? 600 : 400,
-            color: states.contains(WidgetState.selected) ? Palette.ink : Palette.inkFaint,
+      height: 62,
+      labelTextStyle: WidgetStateProperty.resolveWith((states) => OndaText.etiqueta(
+            size: 10,
+            color: states.contains(WidgetState.selected) ? Palette.lime : Palette.textFaint,
           )),
       iconTheme: WidgetStateProperty.resolveWith((states) => IconThemeData(
-            size: 22,
-            color: states.contains(WidgetState.selected) ? Palette.ink : Palette.inkFaint,
+            size: 24,
+            color: states.contains(WidgetState.selected) ? Palette.lime : Palette.textFaint,
           )),
     ),
     bottomSheetTheme: const BottomSheetThemeData(
-      backgroundColor: Palette.paper,
+      backgroundColor: Palette.surface,
       surfaceTintColor: Colors.transparent,
-      shape: RoundedRectangleBorder(),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
     ),
   );
 }

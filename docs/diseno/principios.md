@@ -1,40 +1,50 @@
 # Principios de diseño de ONDA
 
-**Fecha:** 2026-11-04
+**Fecha:** 2026-11-05 · sustituye a la versión editorial del 2026-11-04
 
-## Estilo: editorial, no "de plantilla"
-ONDA tiene que parecer un medio serio que te habla de tu dinero, no una app genérica.
-La referencia son las apps del FT, The Economist o Bloomberg, no las plantillas de
-apps con degradados.
+## Público y objetivo
+Mayores de 18 años, sobre todo jóvenes. La app tiene que **captar y retener la atención**
+como TikTok o las apps de apuestas deportivas, y a la vez explicar lo que le cuesta al
+usuario lo que pasa en el mundo.
 
-- **Tipografía:** Newsreader (serif diseñada para noticias) en titulares y cifras
-  destacadas; IBM Plex Sans en textos, etiquetas y datos, con números tabulares para que
-  las cifras no "bailen". Las dos van incluidas en la app (licencia OFL), no se descargan de
-  Google: así no hay dependencia externa y se evita el problema de RGPD de Google Fonts.
-- **Color con significado:** fondo papel (`#F5F2EB`) y tinta casi negra. Cada color dice
-  algo:
-  - Capas: bolsillo `#0B6E4F`, país `#1F3A93`, mundo `#B8471E`.
-  - Semáforo: verde `#1E8E3E`, ámbar `#D99A00`, rojo `#C62828`. Solo se usan para el semáforo.
-- **Estructura con líneas, no con cajas:** filetes finos de 1 px, etiquetas pequeñas en
-  versalitas ("antetítulo") y mucho aire. Sin sombras difusas, sin degradados, sin
-  emojis, sin ilustraciones de relleno.
-- **Los datos son la imagen:** números grandes y gráficos reales (evolución del precio)
-  en lugar de dibujos.
-- **Movimiento corto y funcional:** transiciones de ≤ 250 ms que explican qué ha cambiado.
+## Estilo visual: "neón nocturno"
+- **Fondo negro** (`#0A0A0B`) y superficies casi negras: el contenido brilla.
+- **Un color firma, lima eléctrico** (`#C6FF00`), para lo que hay que tocar: acciones,
+  progreso y cifras clave. Un solo color de marca evita el aspecto de "paleta generada".
+- **Dorado** (`#FFC83D`) solo para recompensas: puntos, rachas y niveles. Así el cerebro
+  asocia ese color con ganar.
+- **Semáforo** en versiones neón: verde `#2BFF88`, ámbar `#FFB800`, rojo `#FF3B5C`.
+- **Tipografía Archivo** (variable, OFL), muy condensada y gruesa en titulares, al estilo de
+  las apps deportivas, y de ancho normal en los textos. Va incluida en la app.
+- Nada de degradados morados, cristal esmerilado ni ilustraciones genéricas: lo que da
+  "aspecto IA". El impacto viene del contraste, la tipografía y el movimiento.
 
-## Enganche: hábito sí, manipulación no
-Usamos el formato que hace adictivo a TikTok (pantalla completa, deslizar, ritmo) con un
-contenido que **se acaba**. Descartamos a propósito las técnicas de las casas de apuestas:
-recompensas aleatorias, "casi aciertos", urgencia falsa, miedo a perder rachas y scroll
-infinito. Además de ir contra la idea de ONDA, la Ley de Servicios Digitales de la UE
-(art. 25) prohíbe los patrones oscuros en plataformas online.
+## Formato del feed
+1. **Ondas del día** (5-8): 4 tarjetas cada una, como hasta ahora.
+2. **Hito** al terminarlas: celebración y puntos.
+3. **Descubre**, sin final: historias de política, ciencia y curiosidades, mezclando
+   formatos para que cada deslizamiento sea una sorpresa:
+   - **Historia** con narración en audio ("Escuchar").
+   - **Clip**: vídeo corto de tipografía animada, generado en la app a partir del texto.
+     No usa vídeos de medios (derechos de autor).
+   - **Quiz** de una pregunta con respuesta inmediata.
+   - **Predicción**: "¿Subirá el gasóleo esta semana?", con puntos en juego.
 
-| Técnica | Cómo la usamos |
+## Mecánicas de enganche
+| Mecánica | Cómo |
 |---|---|
-| Ritual diario | Las ondas del día salen a una hora fija, como un periódico. |
-| Gesto fluido | Deslizar vertical entre ondas; tocar a derecha o izquierda entre tarjetas. |
-| Progreso visible | Barra por tarjetas y contador "2 de 6". |
-| Cierre que premia | Pantalla final "Ya estás al día" con lo aprendido. El feed termina. |
-| Recompensa real | Ahorro acumulado en euros por seguir el semáforo. |
-| Curiosidad honesta | Cada tarjeta acaba con la pregunta que responde la siguiente. |
-| Notificaciones | Como máximo una al día, solo si hay algo útil. |
+| Recompensa variable | El tipo de contenido de Descubre varía; los quizzes dan puntos al acertar. |
+| Rachas | Días seguidos entrando; se ve siempre en la cabecera. |
+| Puntos y niveles | Por leer ondas, acertar quizzes y predicciones. Barra de progreso al siguiente nivel. |
+| Predicciones | Como una apuesta, pero con puntos: se resuelven con el dato real del Ministerio. |
+| Celebración | Animación y vibración al ganar puntos. |
+| Audio | Escuchar cualquier historia mientras haces otra cosa. |
+
+## Límites legales (para que el enganche sea legal en la UE y España)
+- **Los puntos no se compran ni se canjean por dinero o premios.** Si se pudiera, las
+  predicciones serían juego regulado (Ley 13/2011 del juego).
+- **Sin patrones engañosos** (DSA art. 25 y normativa de consumo): nada de cifras inventadas
+  ("12.000 personas están leyendo esto"), urgencia falsa ni bajas o ajustes escondidos.
+- **Solo mayores de 18**, con confirmación de edad al crear la cuenta.
+- **Notificaciones** solo si el usuario las activa, y desactivables en un toque.
+- **Noticias:** titular, enlace y resumen propio; nunca el texto ni el vídeo de un medio.

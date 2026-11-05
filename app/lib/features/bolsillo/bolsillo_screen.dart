@@ -6,6 +6,7 @@ import '../../data/sample_data.dart';
 import '../../domain/format.dart';
 import '../../domain/fuel.dart';
 import '../../domain/semaforo.dart';
+import '../shared/top_bar.dart';
 import 'price_chart.dart';
 import 'semaforo_panel.dart';
 
@@ -28,52 +29,53 @@ class _BolsilloScreenState extends ConsumerState<BolsilloScreen> {
 
     return SafeArea(
       bottom: false,
-      child: ListView(
-        padding: const EdgeInsets.fromLTRB(24, 12, 24, 32),
+      child: Column(
         children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Text('Tu bolsillo', style: OndaText.titular(24)),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Text('Zona aprox.: ${pocket.areaName}',
-                    textAlign: TextAlign.right, maxLines: 1, overflow: TextOverflow.ellipsis,
-                    style: OndaText.cuerpo(12, color: Palette.inkSoft)),
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          const Divider(color: Palette.ink, thickness: 1.5, height: 1.5),
-          if (usingSampleData)
-            Padding(
-              padding: const EdgeInsets.only(top: 6),
-              child: Text('DATOS DE EJEMPLO', style: OndaText.antetitulo(color: Palette.inkFaint)),
+          const TopBar(),
+          Expanded(
+            child: ListView(
+              padding: const EdgeInsets.fromLTRB(20, 18, 20, 32),
+              children: [
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Flexible(
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Text('TU BOLSILLO', style: OndaText.impacto(36)),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        '${usingSampleData ? 'Datos de ejemplo · ' : ''}${pocket.areaName}',
+                        textAlign: TextAlign.right,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: OndaText.cuerpo(12, color: Palette.textFaint),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 14),
+                _FuelTabs(selected: _fuel, onSelected: (f) => setState(() => _fuel = f)),
+                const SizedBox(height: 16),
+                SemaforoPanel(pocket: pocket),
+                const SizedBox(height: 16),
+                _PriceCard(pocket: pocket),
+                const SizedBox(height: 24),
+                _Stations(pocket: pocket),
+                const SizedBox(height: 16),
+                _SavingCard(saving: saving),
+              ],
             ),
-          const SizedBox(height: 16),
-          _FuelTabs(selected: _fuel, onSelected: (f) => setState(() => _fuel = f)),
-          const SizedBox(height: 24),
-          SemaforoPanel(pocket: pocket),
-          const SizedBox(height: 32),
-          _PriceBlock(pocket: pocket),
-          const SizedBox(height: 32),
-          _Stations(pocket: pocket),
-          const SizedBox(height: 32),
-          const Divider(color: Palette.ink, thickness: 1.5, height: 1.5),
-          const SizedBox(height: 14),
-          Text('TU AHORRO', style: OndaText.antetitulo()),
-          const SizedBox(height: 10),
-          Text(euros(saving), style: OndaText.cifra(48, color: Capa.bolsillo.color)),
-          const SizedBox(height: 6),
-          Text('este mes, por llenar cuando el semáforo estaba en verde y esperar cuando estaba en rojo.',
-              style: OndaText.cuerpo(14, color: Palette.inkSoft)),
+          ),
         ],
       ),
     );
   }
 }
 
-/// Text tabs with an underline, like a newspaper section bar.
 class _FuelTabs extends StatelessWidget {
   const _FuelTabs({required this.selected, required this.onSelected});
   final Fuel selected;
@@ -82,25 +84,22 @@ class _FuelTabs extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Wrap(
+      spacing: 8,
       runSpacing: 8,
       children: [
         for (final fuel in Fuel.values)
           GestureDetector(
             onTap: () => onSelected(fuel),
-            behavior: HitTestBehavior.opaque,
-            child: Container(
-              margin: const EdgeInsets.only(right: 24),
-              padding: const EdgeInsets.only(bottom: 6),
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 180),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 9),
               decoration: BoxDecoration(
-                border: Border(
-                  bottom: BorderSide(color: fuel == selected ? Palette.ink : Colors.transparent, width: 2),
-                ),
+                color: fuel == selected ? Palette.lime : Palette.surface,
+                borderRadius: BorderRadius.circular(20),
               ),
               child: Text(
-                fuel.label,
-                style: OndaText.cuerpo(15,
-                    weight: fuel == selected ? 600 : 400,
-                    color: fuel == selected ? Palette.ink : Palette.inkFaint),
+                fuel.label.toUpperCase(),
+                style: OndaText.etiqueta(size: 12, color: fuel == selected ? Palette.night : Palette.textSoft),
               ),
             ),
           ),
@@ -109,44 +108,55 @@ class _FuelTabs extends StatelessWidget {
   }
 }
 
-class _PriceBlock extends StatelessWidget {
-  const _PriceBlock({required this.pocket});
+class _PriceCard extends StatelessWidget {
+  const _PriceCard({required this.pocket});
   final PocketSnapshot pocket;
 
   @override
   Widget build(BuildContext context) {
     final change = pocket.change7dSoFar;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text('PRECIO MEDIO EN TU ZONA', style: OndaText.antetitulo()),
-        const SizedBox(height: 10),
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.baseline,
-          textBaseline: TextBaseline.alphabetic,
-          children: [
-            Text(fuelPrice(pocket.averagePrice), style: OndaText.cifra(56)),
-            const SizedBox(width: 6),
-            Text('€/l', style: OndaText.cuerpo(16, color: Palette.inkSoft)),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Text('${cents(change)} en 7 días',
-                  textAlign: TextAlign.right, maxLines: 2,
-                  style: OndaText.cuerpo(14, weight: 600)),
-            ),
-          ],
-        ),
-        const SizedBox(height: 18),
-        SizedBox(height: 120, child: PriceChart(values: pocket.last30Days)),
-        const SizedBox(height: 6),
-        Row(
-          children: [
-            Text('hace 30 días', style: OndaText.cuerpo(11, color: Palette.inkFaint)),
-            const Spacer(),
-            Text('hoy', style: OndaText.cuerpo(11, color: Palette.inkFaint)),
-          ],
-        ),
-      ],
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(color: Palette.surface, borderRadius: BorderRadius.circular(16)),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('PRECIO MEDIO EN TU ZONA', style: OndaText.etiqueta()),
+          const SizedBox(height: 8),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.baseline,
+            textBaseline: TextBaseline.alphabetic,
+            children: [
+              Flexible(
+                flex: 2,
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
+                  child: Text.rich(TextSpan(children: [
+                    TextSpan(text: fuelPrice(pocket.averagePrice), style: OndaText.cifra(64)),
+                    TextSpan(text: ' €/l', style: OndaText.cuerpo(16, color: Palette.textSoft)),
+                  ])),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text('${cents(change)}\nen 7 días',
+                    textAlign: TextAlign.right, style: OndaText.cuerpo(13, weight: 700)),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          SizedBox(height: 110, child: PriceChart(values: pocket.last30Days)),
+          const SizedBox(height: 6),
+          Row(
+            children: [
+              Text('HACE 30 DÍAS', style: OndaText.etiqueta(size: 9, color: Palette.textFaint)),
+              const Spacer(),
+              Text('HOY', style: OndaText.etiqueta(size: 9, color: Palette.textFaint)),
+            ],
+          ),
+        ],
+      ),
     );
   }
 }
@@ -161,36 +171,46 @@ class _Stations extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('LAS MÁS BARATAS CERCA DE TI', style: OndaText.antetitulo()),
+        Text('LAS MÁS BARATAS CERCA', style: OndaText.etiqueta(size: 12, color: Palette.text)),
         const SizedBox(height: 10),
-        for (final s in stations) ...[
-          const Divider(),
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 14),
+        for (final (i, s) in stations.indexed) ...[
+          Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: Palette.surface,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: i == 0 ? Palette.lime : Colors.transparent, width: 1.5),
+            ),
             child: Row(
               children: [
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(s.brand, style: OndaText.cuerpo(16, weight: 600)),
+                      if (i == 0)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 4),
+                          child: Text('LA MÁS BARATA', style: OndaText.etiqueta(size: 9, color: Palette.lime)),
+                        ),
+                      Text(s.brand, style: OndaText.cuerpo(16, weight: 700)),
                       Text('${s.address} · ${km(s.distanceKm)}',
-                          style: OndaText.cuerpo(13, color: Palette.inkSoft)),
+                          style: OndaText.cuerpo(12, color: Palette.textSoft)),
                     ],
                   ),
                 ),
+                const SizedBox(width: 10),
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
-                    Text(fuelPrice(s.price), style: OndaText.cifra(24)),
+                    Text(fuelPrice(s.price), style: OndaText.cifra(28)),
                     _SavingLabel(saving: savingEur(referencePrice: pocket.averagePrice, stationPrice: s.price)),
                   ],
                 ),
               ],
             ),
           ),
+          const SizedBox(height: 8),
         ],
-        const Divider(),
       ],
     );
   }
@@ -203,9 +223,37 @@ class _SavingLabel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (saving == 0) {
-      return Text('por encima de la media', style: OndaText.cuerpo(12, color: Palette.inkFaint));
+      return Text('sobre la media', style: OndaText.cuerpo(11, color: Palette.textFaint));
     }
-    return Text('ahorras ${euros(saving)} en 50 l',
-        style: OndaText.cuerpo(12, weight: 600, color: Capa.bolsillo.color));
+    return Text('−${euros(saving)} / 50 l', style: OndaText.cuerpo(12, weight: 700, color: Palette.lime));
+  }
+}
+
+class _SavingCard extends StatelessWidget {
+  const _SavingCard({required this.saving});
+  final double saving;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: Palette.lime.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Palette.lime.withValues(alpha: 0.4)),
+      ),
+      child: Row(
+        children: [
+          Text(euros(saving),
+              style: OndaText.cifra(48, color: Palette.lime)
+                  .copyWith(shadows: [Shadow(color: Palette.lime.withValues(alpha: 0.4), blurRadius: 20)])),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Text('ahorrados este mes siguiendo el semáforo',
+                style: OndaText.cuerpo(14, color: Palette.textSoft)),
+          ),
+        ],
+      ),
+    );
   }
 }

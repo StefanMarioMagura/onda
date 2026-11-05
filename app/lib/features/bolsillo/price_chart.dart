@@ -3,8 +3,7 @@ import 'package:flutter/material.dart';
 import '../../app/theme.dart';
 import '../../domain/format.dart';
 
-/// Minimal line chart of daily prices: the line, the last point, and the
-/// min/max as hairline references. No grid, no axes chrome.
+/// Line chart of daily prices: lime line with a soft fill, min/max labels.
 class PriceChart extends StatelessWidget {
   const PriceChart({super.key, required this.values});
   final List<double> values;
@@ -25,33 +24,45 @@ class _PricePainter extends CustomPainter {
     final span = (hi - lo).abs() < 1e-9 ? 1.0 : hi - lo;
     const labelSpace = 44.0;
     final w = size.width - labelSpace;
-    Offset at(int i) => Offset(i / (values.length - 1) * w, size.height - (values[i] - lo) / span * size.height);
+    final h = size.height - 6;
+    Offset at(int i) => Offset(i / (values.length - 1) * w, 3 + h - (values[i] - lo) / span * h);
 
-    final rule = Paint()
-      ..color = Palette.rule
-      ..strokeWidth = 1;
-    for (final (y, v) in [(0.0, hi), (size.height, lo)]) {
-      canvas.drawLine(Offset(0, y), Offset(w, y), rule);
+    for (final (y, v) in [(3.0, hi), (3 + h, lo)]) {
       final text = TextPainter(
-        text: TextSpan(text: fuelPrice(v), style: OndaText.cuerpo(10, color: Palette.inkFaint)),
+        text: TextSpan(text: fuelPrice(v), style: OndaText.cuerpo(10, color: Palette.textFaint)),
         textDirection: TextDirection.ltr,
       )..layout();
       text.paint(canvas, Offset(w + 8, y - text.height / 2));
     }
 
-    final path = Path()..moveTo(at(0).dx, at(0).dy);
+    final line = Path()..moveTo(at(0).dx, at(0).dy);
     for (var i = 1; i < values.length; i++) {
-      path.lineTo(at(i).dx, at(i).dy);
+      line.lineTo(at(i).dx, at(i).dy);
     }
+    final fill = Path.from(line)
+      ..lineTo(w, size.height)
+      ..lineTo(0, size.height)
+      ..close();
     canvas.drawPath(
-      path,
+      fill,
       Paint()
-        ..color = Palette.ink
+        ..shader = LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [Palette.lime.withValues(alpha: 0.22), Palette.lime.withValues(alpha: 0)],
+        ).createShader(Rect.fromLTWH(0, 0, w, size.height)),
+    );
+    canvas.drawPath(
+      line,
+      Paint()
+        ..color = Palette.lime
         ..style = PaintingStyle.stroke
-        ..strokeWidth = 1.8
+        ..strokeWidth = 2.4
         ..strokeJoin = StrokeJoin.round,
     );
-    canvas.drawCircle(at(values.length - 1), 4, Paint()..color = Palette.ink);
+    final last = at(values.length - 1);
+    canvas.drawCircle(last, 9, Paint()..color = Palette.lime.withValues(alpha: 0.25));
+    canvas.drawCircle(last, 4.5, Paint()..color = Palette.lime);
   }
 
   @override

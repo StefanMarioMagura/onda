@@ -3,13 +3,18 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../app/theme.dart';
 import '../../data/sample_data.dart';
+import '../../domain/discover.dart';
+import '../../domain/rewards.dart';
 import '../../domain/wave.dart';
-import 'end_of_feed.dart';
+import '../../state/rewards_state.dart';
+import '../discover/discover_pages.dart';
+import '../shared/celebration.dart';
+import '../shared/top_bar.dart';
+import 'milestone_page.dart';
 import 'wave_card_view.dart';
 
-/// Today's ondas: vertical swipe between ondas, tap or horizontal swipe between
-/// the 4 cards of each one. The feed ends: after the last onda comes a closing
-/// screen and nothing else (docs/diseno/principios.md).
+/// The feed: today's ondas first, then a milestone, then "Descubre" with no end.
+/// Vertical swipe moves between items; inside an onda, taps move between cards.
 class FeedScreen extends ConsumerStatefulWidget {
   const FeedScreen({super.key});
 
@@ -27,27 +32,51 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
     super.dispose();
   }
 
-  void _nextWave() => _pages.nextPage(duration: const Duration(milliseconds: 320), curve: Curves.easeOutCubic);
+  void _next() => _pages.nextPage(duration: const Duration(milliseconds: 380), curve: Curves.easeOutCubic);
+
+  void _waveFinished(Wave wave) {
+    if (ref.read(rewardsProvider.notifier).claim('wave:${wave.id}', PointsRules.waveRead)) {
+      celebrate(context, PointsRules.waveRead, label: 'Onda completada');
+    }
+    _next();
+  }
+
+  void _onPageChanged(int index, int waveCount) {
+    setState(() => _current = index);
+    if (index == waveCount &&
+        ref.read(rewardsProvider.notifier).claim('milestone:today', PointsRules.dailyMilestone)) {
+      celebrate(context, PointsRules.dailyMilestone, label: 'Día completado');
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final waves = ref.watch(todayWavesProvider);
-    final finished = _current >= waves.length;
+    final pool = ref.watch(discoverPoolProvider);
 
     return SafeArea(
       bottom: false,
       child: Column(
         children: [
-          _Masthead(position: _current, total: waves.length, finished: finished),
+          TopBar(trailing: _SectionLabel(index: _current, waveCount: waves.length)),
           Expanded(
             child: PageView.builder(
               controller: _pages,
               scrollDirection: Axis.vertical,
-              itemCount: waves.length + 1,
-              onPageChanged: (i) => setState(() => _current = i),
-              itemBuilder: (context, i) => i < waves.length
-                  ? WavePage(key: ValueKey(waves[i].id), wave: waves[i], onFinished: _nextWave)
-                  : EndOfFeed(wavesRead: waves.length),
+              // No itemCount: after today's ondas the feed keeps going.
+              onPageChanged: (i) => _onPageChanged(i, waves.length),
+              itemBuilder: (context, i) {
+                if (i < waves.length) {
+                  return WavePage(
+                    key: ValueKey(waves[i].id),
+                    wave: waves[i],
+                    onFinished: () => _waveFinished(waves[i]),
+                  );
+                }
+                if (i == waves.length) return MilestonePage(wavesRead: waves.length);
+                final next = discoverAt(pool, i - waves.length - 1);
+                return DiscoverPage(key: ValueKey(next.key), item: next.item);
+              },
             ),
           ),
         ],
@@ -56,54 +85,17 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
   }
 }
 
-/// Newspaper-style header: wordmark, date and position in today's edition.
-class _Masthead extends StatelessWidget {
-  const _Masthead({required this.position, required this.total, required this.finished});
-  final int position;
-  final int total;
-  final bool finished;
+class _SectionLabel extends StatelessWidget {
+  const _SectionLabel({required this.index, required this.waveCount});
+  final int index;
+  final int waveCount;
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(24, 12, 24, 0),
-      child: Column(
-        children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Text('Onda', style: OndaText.titular(24)),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.only(bottom: 3),
-                  child: Text(spanishDate(DateTime.now()),
-                      maxLines: 1, overflow: TextOverflow.ellipsis,
-                      style: OndaText.cuerpo(12, color: Palette.inkSoft)),
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.only(bottom: 3),
-                child: Text(
-                  finished ? 'Completado' : '${position + 1} de $total',
-                  style: OndaText.cuerpo(12, weight: 600),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          const Divider(color: Palette.ink, thickness: 1.5, height: 1.5),
-          if (usingSampleData)
-            Padding(
-              padding: const EdgeInsets.only(top: 6),
-              child: Align(
-                alignment: Alignment.centerLeft,
-                child: Text('CONTENIDO DE EJEMPLO', style: OndaText.antetitulo(color: Palette.inkFaint)),
-              ),
-            ),
-        ],
-      ),
-    );
+    final text = index < waveCount ? 'HOY ${index + 1}/$waveCount' : 'DESCUBRE';
+    final color = index < waveCount ? Palette.text : Capa.descubre.color;
+    return Text(text, maxLines: 1, overflow: TextOverflow.fade, softWrap: false,
+        style: OndaText.etiqueta(color: color, size: 12));
   }
 }
 
@@ -140,7 +132,7 @@ class _WavePageState extends State<WavePage> {
   Widget build(BuildContext context) {
     final wave = widget.wave;
     return Padding(
-      padding: const EdgeInsets.fromLTRB(24, 14, 24, 0),
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -188,24 +180,18 @@ class _StepProgress extends StatelessWidget {
           Expanded(
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 220),
-              height: 3,
-              color: i <= current ? color : Palette.rule,
+              height: 4,
+              decoration: BoxDecoration(
+                color: i <= current ? color : Palette.line,
+                borderRadius: BorderRadius.circular(2),
+                boxShadow: i == current
+                    ? [BoxShadow(color: color.withValues(alpha: 0.5), blurRadius: 8)]
+                    : null,
+              ),
             ),
           ),
         ],
       ],
     );
   }
-}
-
-const _weekdays = ['lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado', 'domingo'];
-const _months = [
-  'enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio',
-  'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre',
-];
-
-/// "Miércoles, 4 de noviembre".
-String spanishDate(DateTime d) {
-  final weekday = _weekdays[d.weekday - 1];
-  return '${weekday[0].toUpperCase()}${weekday.substring(1)}, ${d.day} de ${_months[d.month - 1]}';
 }

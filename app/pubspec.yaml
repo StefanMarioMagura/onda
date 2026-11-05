@@ -10,6 +10,7 @@ dependencies:
   flutter:
     sdk: flutter
   flutter_riverpod: ^3.4.3
+  flutter_tts: ^4.2.5
   go_router: ^18.1.2
   supabase_flutter: ^2.18.3
 
@@ -21,10 +22,7 @@ dev_dependencies:
 flutter:
   uses-material-design: true
   fonts:
-    # Variable fonts (OFL), bundled so the app never fetches them from Google.
-    - family: Newsreader
+    # Variable font (OFL, weight + width axes), bundled so the app never fetches it from Google.
+    - family: Archivo
       fonts:
-        - asset: assets/fonts/Newsreader.ttf
-    - family: IBMPlexSans
-      fonts:
-        - asset: assets/fonts/IBMPlexSans.ttf
+        - asset: assets/fonts/Archivo.ttf
