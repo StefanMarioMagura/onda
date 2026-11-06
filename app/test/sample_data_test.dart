@@ -44,7 +44,7 @@ void main() {
   test('Descubre mixes every format and its quizzes are well formed', () {
     final pool = container.read(discoverPoolProvider);
     expect(pool.map((i) => i.runtimeType).toSet(),
-        {StoryItem, ClipItem, QuizItem, PredictionItem, FactItem});
+        {StoryItem, ClipItem, QuizItem, PredictionItem, FactItem, DebateItem});
     expect(pool.map((i) => i.id).toSet().length, pool.length, reason: 'ids must be unique');
     for (final quiz in pool.whereType<QuizItem>()) {
       expect(quiz.correct, inInclusiveRange(0, quiz.options.length - 1), reason: quiz.id);

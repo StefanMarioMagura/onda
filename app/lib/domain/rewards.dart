@@ -5,6 +5,7 @@ abstract final class PointsRules {
   static const waveRead = 10;
   static const dailyMilestone = 50;
   static const quizCorrect = 20;
+  static const vote = 5;
   static const pointsPerLevel = 100;
 }
 

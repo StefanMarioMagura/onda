@@ -7,6 +7,7 @@ import 'package:onda/domain/discover.dart';
 import 'package:onda/features/discover/discover_pages.dart';
 import 'package:onda/state/rewards_state.dart';
 import 'package:onda/state/speech.dart';
+import 'package:onda/state/votes_state.dart';
 
 import 'helpers.dart';
 
@@ -15,7 +16,10 @@ Future<ProviderContainer> pumpItem(WidgetTester tester, DiscoverItem item) async
   tester.view.physicalSize = const Size(1170, 2532);
   tester.view.devicePixelRatio = 3;
   addTearDown(tester.view.reset);
-  final container = ProviderContainer(overrides: [speechProvider.overrideWithValue(FakeSpeech())]);
+  final container = ProviderContainer(overrides: [
+    speechProvider.overrideWithValue(FakeSpeech()),
+    prefsProvider.overrideWithValue(await testPrefs()),
+  ]);
   addTearDown(container.dispose);
   await tester.pumpWidget(UncontrolledProviderScope(
     container: container,

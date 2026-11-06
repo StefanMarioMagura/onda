@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'app/router.dart';
 import 'app/theme.dart';
+import 'state/votes_state.dart';
 
 // Passed at build time, never hardcoded.
 const supabaseUrl = String.fromEnvironment('SUPABASE_URL');
@@ -18,7 +20,11 @@ Future<void> main() async {
   if (supabaseConfigured) {
     await Supabase.initialize(url: supabaseUrl, publishableKey: supabasePublishableKey);
   }
-  runApp(const ProviderScope(child: OndaApp()));
+  final prefs = await SharedPreferences.getInstance();
+  runApp(ProviderScope(
+    overrides: [prefsProvider.overrideWithValue(prefs)],
+    child: const OndaApp(),
+  ));
 }
 
 class OndaApp extends StatelessWidget {

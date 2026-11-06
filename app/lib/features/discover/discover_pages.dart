@@ -10,6 +10,7 @@ import '../../state/rewards_state.dart';
 import '../feed/wave_card_view.dart';
 import '../shared/celebration.dart';
 import '../shared/side_rail.dart';
+import '../shared/vote_dial.dart';
 
 /// One full-screen item of the endless "Descubre" stream.
 class DiscoverPage extends StatelessWidget {
@@ -24,6 +25,7 @@ class DiscoverPage extends StatelessWidget {
       QuizItem quiz => _Quiz(quiz: quiz),
       PredictionItem prediction => _PredictionView(item: prediction),
       FactItem fact => _Fact(fact: fact),
+      DebateItem debate => _Debate(debate: debate),
     };
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 18, 20, 16),
@@ -63,6 +65,8 @@ class _Story extends StatelessWidget {
               Text(story.body, style: OndaText.cuerpo(17, color: Palette.textSoft)),
               const SizedBox(height: 24),
               ListenButton(text: story.narration),
+              const SizedBox(height: 24),
+              VoteDial(itemId: story.id, question: '¿QUÉ TE PARECE ESTA HISTORIA?'),
             ],
           ),
         ),
@@ -470,6 +474,32 @@ class _Fact extends StatelessWidget {
         Text(fact.text, style: OndaText.cuerpo(22, weight: 600)),
         const SizedBox(height: 16),
         Text('Fuente: ${fact.source}', style: OndaText.cuerpo(12, color: Palette.textFaint)),
+      ],
+    );
+  }
+}
+
+/// A proposal from the public debate to rate with the dial.
+class _Debate extends StatelessWidget {
+  const _Debate({required this.debate});
+  final DebateItem debate;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('¿ESTÁS A FAVOR?', style: OndaText.etiqueta(color: Capa.descubre.color, size: 12)),
+        const SizedBox(height: 10),
+        Text(debate.statement, style: OndaText.impacto(42)),
+        const SizedBox(height: 14),
+        Text(debate.context, style: OndaText.cuerpo(16, color: Palette.textSoft)),
+        const Spacer(),
+        VoteDial(itemId: debate.id, question: 'DESLIZA PARA OPINAR'),
+        const SizedBox(height: 10),
+        Text('Tu opinión se queda en tu móvil. Solo enviamos un contador anónimo.',
+            style: OndaText.cuerpo(11, color: Palette.textFaint)),
+        const SizedBox(height: 8),
       ],
     );
   }

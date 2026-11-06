@@ -1,4 +1,5 @@
 import '../app/theme.dart';
+import 'affinity.dart';
 
 /// The four steps every onda goes through, always in this order.
 enum WaveStep {
@@ -53,6 +54,7 @@ class Wave {
     required this.cards,
     required this.source,
     this.shores,
+    this.stance,
   });
 
   final String id;
@@ -62,4 +64,7 @@ class Wave {
   final List<WaveCard> cards;
   final String source;
   final TwoShores? shores;
+
+  /// Editorial marking for the political map (null if the onda isn't political).
+  final Stance? stance;
 }

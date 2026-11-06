@@ -2,6 +2,7 @@
 // Not part of the normal test run. Regenerate with:
 //   flutter test tool/screenshots --update-goldens
 // Output: tool/screenshots/out/*.png
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -9,6 +10,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../test/helpers.dart';
+import '../../test/perfil_test.dart' show leftVotes;
 
 Future<void> _loadFont(String family, String path) async {
   final loader = FontLoader(family)..addFont(Future.value(ByteData.sublistView(File(path).readAsBytesSync())));
@@ -33,44 +35,57 @@ void main() {
   testWidgets('feed', (tester) async {
     await pumpApp(tester);
     await shot('01_onda_que_paso');
-    await tapForward(tester);
-    await tapForward(tester);
-    await shot('02_onda_como_te_llega');
-    await tapForward(tester);
-    await shot('03_onda_que_haces');
-    await tester.tapAt(const Offset(250, 250)); // completes the onda
+    for (var i = 0; i < 3; i++) {
+      await tapForward(tester);
+    }
+    await shot('02_onda_que_haces_con_dial');
+    await tester.drag(find.byIcon(Icons.swap_horiz_rounded), const Offset(120, 0));   // mid-slide
     await tester.pump();
-    await tester.pump(const Duration(milliseconds: 300)); // mid-celebration
-    await shot('04_celebracion');
-    await tester.pumpAndSettle();
-    await tapForward(tester);
-    await tester.tap(find.text('LAS DOS ORILLAS'));
-    await tester.pumpAndSettle();
-    await shot('05_dos_orillas');
+    await shot('03_dial_deslizando');
   });
 
-  testWidgets('milestone and descubre', (tester) async {
+  testWidgets('descubre debate', (tester) async {
     await pumpApp(tester);
     for (var i = 0; i < 19; i++) {
       await tapForward(tester);
     }
     await tapForward(tester, settle: false);
     await tester.pump(const Duration(seconds: 2));
-    await shot('06_hito');
-    for (var i = 0; i < 6; i++) {
+    // Scroll Descubre until the first debate.
+    for (var i = 0; i < 30 && find.text('¿ESTÁS A FAVOR?').evaluate().isEmpty; i++) {
       await tester.drag(find.byType(PageView).first, const Offset(0, -700));
       await _settle(tester);
-      await shot('${(7 + i).toString().padLeft(2, '0')}_descubre_${i + 1}');
     }
+    await shot('04_debate');
   });
 
-  testWidgets('bolsillo', (tester) async {
+  testWidgets('tu españa', (tester) async {
     await pumpApp(tester);
-    await tester.tap(find.text('Tu bolsillo'));
+    await tester.tap(find.text('Tu España'));
     await tester.pumpAndSettle();
-    await shot('13_bolsillo');
-    await tester.drag(find.byType(ListView), const Offset(0, -700));
+    await shot('05_tu_espana');
+    await tester.tap(find.text('CARBURANTES'));
     await tester.pumpAndSettle();
-    await shot('14_bolsillo_gasolineras');
+    await shot('06_carburantes');
+  });
+
+  testWidgets('perfil', (tester) async {
+    await pumpApp(tester);
+    await tester.tap(find.text('Perfil'));
+    await tester.pumpAndSettle();
+    await shot('07_perfil_sin_activar');
+    await tester.tap(find.text('ACTIVAR MI MAPA POLÍTICO'));
+    await tester.pumpAndSettle();
+    await shot('08_consentimiento');
+  });
+
+  testWidgets('perfil con mapa', (tester) async {
+    await pumpApp(tester, stored: {'political_map_consent_v1': true, 'votes_v1': jsonEncode(leftVotes)});
+    await tester.tap(find.text('Perfil'));
+    await tester.pumpAndSettle();
+    await shot('09_mapa_politico');
+    await tester.drag(find.byType(ListView).last, const Offset(0, -650));
+    await tester.pumpAndSettle();
+    await shot('10_mapa_ejes');
   });
 }

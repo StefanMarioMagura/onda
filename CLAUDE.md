@@ -6,8 +6,14 @@ infinito "Descubre" (historias de política, ciencia y curiosidades) en texto, a
 Público: mayores de 18 años. Sin burbuja política.
 Es mi proyecto final: prioriza código claro, explicable y bien probado sobre trucos.
 
-## Las tres capas
-- **Tu bolsillo:** precios de carburantes, semáforo "¿lleno hoy o espero?", gasolineras baratas en tu ruta.
+## Concepto (v2, ver /docs/producto/concepto-v2.md)
+Tres pestañas:
+- **Hoy:** feed de ondas y Descubre. Cada onda e historia se valora deslizando un dial (bien / mal / me da igual).
+- **Tu España:** panel de datos reales de la vida en España: carburantes con semáforo, luz, y más adelante salario y cesta de la compra.
+- **Perfil:** racha, puntos y, con consentimiento explícito, el mapa político del usuario (3 ejes) y el partido al que más se parece.
+
+Capas de contenido de las ondas:
+- **Tu bolsillo:** lo que cuesta vivir (carburantes, luz, compra, vivienda...).
 - **Tu país:** política explicada por sus consecuencias, con "Las dos orillas" (cómo lo cuenta cada lado + hechos comunes).
 - **El mundo:** solo sucesos cuya onda llega a la vida del usuario en España.
 
@@ -32,6 +38,7 @@ Cada onda = 4 tarjetas: qué pasó → por qué importa → cómo te llega → q
 - Precios de todas las gasolineras: API REST de precios de carburantes del Ministerio (Geoportal de Gasolineras).
 - Brent: API de la EIA (publica con ~7 días de retraso). Cambio EUR/USD: API del BCE.
 - Noticias: RSS de medios + GDELT. Orientación de medios: clasificación propia documentada en /docs.
+- Luz: API REData de Red Eléctrica (PVPC por horas). Partidos: CHES 2024 (chesdata.eu).
 - La app NUNCA llama a fuentes externas: solo lee de Supabase.
 
 ## Tablas principales
@@ -51,6 +58,9 @@ predicciones (pronósticos de los usuarios con puntos), interacciones.
   Nada de cifras falsas, urgencia falsa ni bajas difíciles (DSA art. 25).
 - Noticias: solo titular, enlace y resumen propio; nunca el texto completo de un medio.
 - Ubicación del usuario solo aproximada (RGPD).
+- Mapa político: posiciones de partidos del Chapel Hill Expert Survey (CHES), nunca inventadas.
+  Las valoraciones del usuario se quedan en su móvil; al servidor solo van contadores anónimos.
+  Consentimiento explícito aparte (RGPD art. 9) y nunca se usa para elegir contenido ni publicidad.
 
 ## Semáforo (modelo v2 "solo surtidor")
 Regresión del cambio de precio a 7 días sobre dos variables que se conocen el mismo día:

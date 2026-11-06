@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../app/theme.dart';
+import '../domain/affinity.dart';
 import '../domain/discover.dart';
 import '../domain/fuel.dart';
 import '../domain/wave.dart';
@@ -20,7 +21,129 @@ final monthlySavingProvider = Provider<double>((ref) => 4.20);
 /// Pool the endless "Descubre" stream is built from (see discoverAt).
 final discoverPoolProvider = Provider<List<DiscoverItem>>((ref) => _discover);
 
+/// Editorial stances of every rateable item, by id (for the political map).
+final stancesProvider = Provider<Map<String, Stance>>((ref) => {
+      for (final w in ref.watch(todayWavesProvider))
+        if (w.stance != null) w.id: w.stance!,
+      for (final d in ref.watch(discoverPoolProvider))
+        if (d.stance != null) d.id: d.stance!,
+    });
+
 const _discover = <DiscoverItem>[
+  DebateItem(
+    id: 'debate-jornada-375',
+    statement: 'Reducir la jornada laboral máxima a 37,5 horas semanales sin bajar el sueldo.',
+    context: 'Hoy el máximo legal es de 40 horas semanales.',
+    stance: Stance({PolAxis.economia: -1}),
+  ),
+  DebateItem(
+    id: 'debate-tope-alquiler',
+    statement: 'Limitar por ley el precio del alquiler en las zonas con más tensión.',
+    context: 'La ley de vivienda de 2023 permite a las comunidades declarar zonas tensionadas.',
+    stance: Stance({PolAxis.economia: -1}),
+  ),
+  DebateItem(
+    id: 'debate-grandes-fortunas',
+    statement: 'Subir el impuesto a las grandes fortunas.',
+    context: 'Desde 2022 existe un impuesto temporal de solidaridad sobre patrimonios de más de 3 millones de euros.',
+    stance: Stance({PolAxis.economia: -1}),
+  ),
+  DebateItem(
+    id: 'debate-bajar-irpf',
+    statement: 'Bajar el IRPF aunque haya que recortar gasto público.',
+    context: 'El IRPF es el impuesto que más recauda el Estado.',
+    stance: Stance({PolAxis.economia: 1}),
+  ),
+  DebateItem(
+    id: 'debate-sucesiones',
+    statement: 'Eliminar el impuesto de sucesiones y donaciones.',
+    context: 'Lo gestionan las comunidades autónomas y varias ya lo han bonificado casi por completo.',
+    stance: Stance({PolAxis.economia: 1}),
+  ),
+  DebateItem(
+    id: 'debate-cotizaciones',
+    statement: 'Reducir las cotizaciones sociales que pagan las empresas por cada trabajador.',
+    context: 'Las cotizaciones financian sobre todo las pensiones.',
+    stance: Stance({PolAxis.economia: 1}),
+  ),
+  DebateItem(
+    id: 'debate-despido',
+    statement: 'Abaratar el despido para que a las empresas les cueste menos contratar.',
+    context: 'La indemnización general por despido improcedente es de 33 días por año trabajado.',
+    stance: Stance({PolAxis.economia: 1}),
+  ),
+  DebateItem(
+    id: 'debate-reincidencia',
+    statement: 'Endurecer las penas para quien reincide en delitos leves, como los hurtos.',
+    context: 'Hoy muchos hurtos de menos de 400 euros se castigan solo con multa.',
+    stance: Stance({PolAxis.sociedad: 1}),
+  ),
+  DebateItem(
+    id: 'debate-inmigracion',
+    statement: 'Reducir la llegada de inmigrantes y endurecer las expulsiones.',
+    context: 'En 2025 vivían en España algo más de 7 millones de personas nacidas en el extranjero.',
+    stance: Stance({PolAxis.sociedad: 1}),
+  ),
+  DebateItem(
+    id: 'debate-religion',
+    statement: 'Dar más peso a la asignatura de Religión en la escuela.',
+    context: 'Hoy es optativa y no cuenta para la nota media.',
+    stance: Stance({PolAxis.sociedad: 1}),
+  ),
+  DebateItem(
+    id: 'debate-eutanasia',
+    statement: 'Mantener la ley que regula la eutanasia.',
+    context: 'La ley está en vigor desde 2021.',
+    stance: Stance({PolAxis.sociedad: -1}),
+  ),
+  DebateItem(
+    id: 'debate-regularizacion',
+    statement: 'Regularizar a los inmigrantes que ya viven y trabajan en España sin papeles.',
+    context: 'En 2024 el Congreso admitió a trámite una iniciativa legislativa popular con este objetivo.',
+    stance: Stance({PolAxis.sociedad: -1}),
+  ),
+  DebateItem(
+    id: 'debate-toros',
+    statement: 'Prohibir las corridas de toros.',
+    context: 'Están protegidas como patrimonio cultural por una ley de 2013.',
+    stance: Stance({PolAxis.sociedad: -1}),
+  ),
+  DebateItem(
+    id: 'debate-recentralizar',
+    statement: 'Que el Estado vuelva a gestionar la sanidad y la educación.',
+    context: 'Hoy las gestionan las comunidades autónomas.',
+    stance: Stance({PolAxis.territorio: 1}),
+  ),
+  DebateItem(
+    id: 'debate-castellano-vehicular',
+    statement: 'Que el castellano sea lengua vehicular en todas las escuelas de España.',
+    context: 'En comunidades con lengua propia, cada una decide cómo reparte las lenguas en la escuela.',
+    stance: Stance({PolAxis.territorio: 1}),
+  ),
+  DebateItem(
+    id: 'debate-concierto',
+    statement: 'Suprimir el concierto económico vasco y el convenio navarro.',
+    context: 'Permiten al País Vasco y a Navarra recaudar sus propios impuestos.',
+    stance: Stance({PolAxis.territorio: 1}),
+  ),
+  DebateItem(
+    id: 'debate-financiacion-singular',
+    statement: 'Dar a Cataluña una financiación propia, parecida a la del País Vasco.',
+    context: 'Hoy Cataluña está en el sistema de financiación común de las comunidades.',
+    stance: Stance({PolAxis.territorio: -1}),
+  ),
+  DebateItem(
+    id: 'debate-referendum',
+    statement: 'Permitir referéndums de autodeterminación pactados con el Estado.',
+    context: 'La Constitución no contempla hoy este tipo de consulta.',
+    stance: Stance({PolAxis.territorio: -1}),
+  ),
+  DebateItem(
+    id: 'debate-cercanias',
+    statement: 'Traspasar la gestión de los trenes de Cercanías a las comunidades autónomas.',
+    context: 'En 2024 se acordó el traspaso de Rodalies a Cataluña.',
+    stance: Stance({PolAxis.territorio: -1}),
+  ),
   StoryItem(
     id: 'campoamor',
     topic: 'Historia política',
@@ -165,6 +288,7 @@ const _waves = [
     id: 'smi',
     layer: Capa.pais,
     source: 'BOE · INE',
+    stance: Stance({PolAxis.economia: -1}),
     shores: TwoShores(
       supporters: 'Destacan que el salario mínimo ha perdido poder de compra '
           'con la inflación de los últimos años y que la subida ayuda a 2 millones de personas.',

@@ -59,9 +59,12 @@ void main() {
     expect(find.text('Escuchar'), findsWidgets);
   });
 
-  testWidgets('Tu bolsillo shows the semáforo and switches fuel', (tester) async {
+  testWidgets('Tu España opens the fuel detail with the semáforo, and switches fuel', (tester) async {
     await pumpApp(tester);
-    await tester.tap(find.text('Tu bolsillo'));
+    await tester.tap(find.text('Tu España'));
+    await tester.pumpAndSettle();
+    expect(find.text('LUZ HOY · TARIFA REGULADA (PVPC)'), findsOneWidget);
+    await tester.tap(find.text('CARBURANTES'));
     await tester.pumpAndSettle();
     expect(find.text('LLENA HOY'), findsOneWidget);
 

@@ -8,6 +8,7 @@ import 'package:onda/domain/fuel.dart';
 import 'package:onda/domain/semaforo.dart';
 import 'package:onda/main.dart';
 import 'package:onda/state/speech.dart';
+import 'package:onda/state/votes_state.dart';
 
 import 'helpers.dart';
 
@@ -130,9 +131,8 @@ void main() {
     expect(ProviderContainer().read(pocketRepositoryProvider), isA<SamplePocketRepository>());
   });
 
-  testWidgets('Tu bolsillo shows an error with retry when loading fails', (tester) async {
-    var calls = 0;
-    final repo = _FailingTimes(3, () => calls++);   // initial load + 2 automatic retries
+  testWidgets('without network: "Sin datos" on the dashboard, error and retry on the detail', (tester) async {
+    final repo = _Flaky();
     tester.view.physicalSize = const Size(1170, 2532);
     tester.view.devicePixelRatio = 3;
     addTearDown(tester.view.reset);
@@ -140,34 +140,37 @@ void main() {
       overrides: [
         speechProvider.overrideWithValue(FakeSpeech()),
         pocketRepositoryProvider.overrideWithValue(repo),
+        prefsProvider.overrideWithValue(await testPrefs()),
       ],
       child: const OndaApp(),
     ));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Tu bolsillo'));
+    await tester.tap(find.text('Tu España'));
     await tester.pump();
-    await tester.pump(const Duration(seconds: 3));   // let the automatic retries run out
+    await tester.pump(const Duration(seconds: 3));   // automatic retries run out
+    await tester.pumpAndSettle();
+    expect(find.text('Sin datos'), findsNWidgets(2));
+    expect(repo.calls, 2 * 3);                        // 2 fuels x (1 load + 2 retries)
+
+    await tester.tap(find.text('CARBURANTES'));
     await tester.pumpAndSettle();
     expect(find.text('NO HEMOS PODIDO CARGAR LOS PRECIOS'), findsOneWidget);
-    expect(calls, 3);
 
+    repo.online = true;
     await tester.tap(find.text('REINTENTAR'));
     await tester.pumpAndSettle();
     expect(find.text('LLENA HOY'), findsOneWidget);
-    expect(calls, 4);
   });
 }
 
-class _FailingTimes implements PocketRepository {
-  _FailingTimes(this.failures, this.onCall);
-  final int failures;
-  final VoidCallback onCall;
-  var _calls = 0;
+class _Flaky implements PocketRepository {
+  bool online = false;
+  int calls = 0;
 
   @override
   Future<PocketSnapshot> load(Fuel fuel) async {
-    onCall();
-    if (_calls++ < failures) throw Exception('network down');
+    calls++;
+    if (!online) throw Exception('network down');
     return samplePocket(fuel);
   }
 }

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../app/theme.dart';
 import '../../data/pocket_repository.dart';
@@ -11,7 +12,7 @@ import '../shared/top_bar.dart';
 import 'price_chart.dart';
 import 'semaforo_panel.dart';
 
-/// "Tu bolsillo": the semáforo, today's price in the user's area, the cheapest
+/// Fuel detail (from "Tu España"): the semáforo, today's price in the user's area, the cheapest
 /// stations nearby and what following the semáforo has saved.
 class BolsilloScreen extends ConsumerStatefulWidget {
   const BolsilloScreen({super.key});
@@ -40,10 +41,18 @@ class _BolsilloScreenState extends ConsumerState<BolsilloScreen> {
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
+                    if (GoRouter.of(context).canPop())
+                      IconButton(
+                        onPressed: () => context.pop(),
+                        icon: const Icon(Icons.arrow_back_rounded),
+                        tooltip: 'Volver',
+                        padding: EdgeInsets.zero,
+                        visualDensity: VisualDensity.compact,
+                      ),
                     Flexible(
                       child: FittedBox(
                         fit: BoxFit.scaleDown,
-                        child: Text('TU BOLSILLO', style: OndaText.impacto(36)),
+                        child: Text('CARBURANTES', style: OndaText.impacto(36)),
                       ),
                     ),
                     const SizedBox(width: 12),

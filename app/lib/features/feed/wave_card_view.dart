@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../app/theme.dart';
 import '../../domain/wave.dart';
 import '../shared/side_rail.dart';
+import '../shared/vote_dial.dart';
 import 'two_shores_sheet.dart';
 
 /// One card of an onda.
@@ -56,6 +57,10 @@ class WaveCardView extends StatelessWidget {
                       if (card.actions.isNotEmpty) ...[
                         const SizedBox(height: 22),
                         _Actions(actions: card.actions, color: color),
+                      ],
+                      if (isLastWaveCard) ...[
+                        const SizedBox(height: 12),
+                        VoteDial(itemId: wave.id, question: '¿QUÉ TE PARECE ESTA NOTICIA?'),
                       ],
                       if (wave.shores != null && step == WaveStep.whyItMatters) ...[
                         const SizedBox(height: 22),

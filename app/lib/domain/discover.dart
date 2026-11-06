@@ -1,15 +1,34 @@
 import 'dart:math';
 
 import '../app/theme.dart';
+import 'affinity.dart';
 
 /// Items of the endless "Descubre" stream that follows today's ondas.
 /// Formats are mixed on purpose: each swipe can bring something different.
 sealed class DiscoverItem {
-  const DiscoverItem({required this.id, required this.topic});
+  const DiscoverItem({required this.id, required this.topic, this.stance});
   final String id;
 
   /// Short label shown above the item ("Historia", "Ciencia"...).
   final String topic;
+
+  /// Editorial marking for the political map (null if the item isn't political).
+  final Stance? stance;
+}
+
+/// A real proposal from the Spanish public debate, stated neutrally, to rate.
+class DebateItem extends DiscoverItem {
+  const DebateItem({
+    required super.id,
+    required this.statement,
+    required this.context,
+    required Stance super.stance,
+    super.topic = 'Debate',
+  });
+  final String statement;
+
+  /// One neutral line of context: what it is, not who is right.
+  final String context;
 }
 
 /// A short story with optional audio narration.

@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../features/bolsillo/bolsillo_screen.dart';
+import '../features/espana/espana_screen.dart';
 import '../features/feed/feed_screen.dart';
+import '../features/perfil/perfil_screen.dart';
 
 final router = GoRouter(
   initialLocation: '/hoy',
@@ -14,7 +16,16 @@ final router = GoRouter(
           GoRoute(path: '/hoy', builder: (context, state) => const FeedScreen()),
         ]),
         StatefulShellBranch(routes: [
-          GoRoute(path: '/bolsillo', builder: (context, state) => const BolsilloScreen()),
+          GoRoute(
+            path: '/espana',
+            builder: (context, state) => const EspanaScreen(),
+            routes: [
+              GoRoute(path: 'carburantes', builder: (context, state) => const BolsilloScreen()),
+            ],
+          ),
+        ]),
+        StatefulShellBranch(routes: [
+          GoRoute(path: '/perfil', builder: (context, state) => const PerfilScreen()),
         ]),
       ],
     ),
@@ -34,8 +45,8 @@ class _Shell extends StatelessWidget {
         onDestinationSelected: (i) => shell.goBranch(i, initialLocation: i == shell.currentIndex),
         destinations: const [
           NavigationDestination(icon: Icon(Icons.waves_rounded), label: 'Hoy'),
-          NavigationDestination(icon: Icon(Icons.local_gas_station_outlined),
-              selectedIcon: Icon(Icons.local_gas_station_rounded), label: 'Tu bolsillo'),
+          NavigationDestination(icon: Icon(Icons.insights_rounded), label: 'Tu España'),
+          NavigationDestination(icon: Icon(Icons.person_rounded), label: 'Perfil'),
         ],
       ),
     );

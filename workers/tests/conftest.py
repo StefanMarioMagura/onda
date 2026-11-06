@@ -26,10 +26,11 @@ MIGRATIONS = [
     if m.stem.split("_", 1)[1] not in SUPABASE_ONLY
 ]
 
-TABLES = "public.precios, public.gasolineras, public.capturas, public.precios_diarios, public.brent_diario, public.semaforo_diario"
+TABLES = "public.precios, public.gasolineras, public.capturas, public.precios_diarios, public.brent_diario, public.semaforo_diario, public.votos_noticias, public.luz_horaria"
 
 _STATIONS_ARGS = "(text, double precision, double precision, double precision, integer)"
-FUNCTIONS = f"public.cheapest_stations{_STATIONS_ARGS}, public.nearby_prices{_STATIONS_ARGS}"
+FUNCTIONS = (f"public.cheapest_stations{_STATIONS_ARGS}, public.nearby_prices{_STATIONS_ARGS}, "
+             "public.cast_vote(text, text, text)")
 
 # Minimal stand-ins for what Supabase provides, so the migrations run on vanilla Postgres.
 # The postgis/postgis image pre-installs PostGIS in `public`; Supabase uses `extensions`.
