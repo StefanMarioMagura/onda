@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../app/theme.dart';
 import '../../data/luz_repository.dart';
 import '../../data/pocket_repository.dart';
+import '../../data/stats_repository.dart';
 import '../../domain/format.dart';
 import '../../domain/fuel.dart';
 import '../bolsillo/semaforo_panel.dart';
@@ -27,6 +28,7 @@ class EspanaScreen extends ConsumerWidget {
               onRefresh: () async {
                 ref.invalidate(luzTodayProvider);
                 ref.invalidate(pocketProvider);
+                ref.invalidate(spainStatsProvider);
               },
               child: ListView(
                 padding: const EdgeInsets.fromLTRB(20, 18, 20, 32),
@@ -38,13 +40,9 @@ class EspanaScreen extends ConsumerWidget {
                   const SizedBox(height: 12),
                   const _LuzCard(),
                   const SizedBox(height: 12),
-                  const Row(
-                    children: [
-                      Expanded(child: _SoonCard(title: 'Salario medio', source: 'INE')),
-                      SizedBox(width: 12),
-                      Expanded(child: _SoonCard(title: 'Cesta de la compra', source: 'INE · IPC')),
-                    ],
-                  ),
+                  const _BasketCard(),
+                  const SizedBox(height: 12),
+                  const _SalaryCard(),
                 ],
               ),
             ),
@@ -231,29 +229,170 @@ class _HourBars extends StatelessWidget {
   }
 }
 
-class _SoonCard extends StatelessWidget {
-  const _SoonCard({required this.title, required this.source});
-  final String title;
-  final String source;
+class _BasketCard extends ConsumerWidget {
+  const _BasketCard();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return _Card(
+      title: 'Cesta de la compra',
+      source: 'INE · Índice de Precios de Consumo (alimentos y bebidas no alcohólicas)',
+      child: switch (ref.watch(spainStatsProvider)) {
+        AsyncData(:final value) when value.foodCpi.isNotEmpty => _Basket(stats: value),
+        AsyncError() => Text('No hemos podido cargar los precios.', style: OndaText.cuerpo(14, color: Palette.textSoft)),
+        AsyncData() => Text('Sin datos todavía.', style: OndaText.cuerpo(14, color: Palette.textSoft)),
+        _ => const LinearProgressIndicator(color: Palette.lime, backgroundColor: Palette.line),
+      },
+    );
+  }
+}
+
+class _Basket extends StatelessWidget {
+  const _Basket({required this.stats});
+  final SpainStats stats;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      height: 120,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Palette.line),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(title.toUpperCase(), style: OndaText.etiqueta(size: 11, color: Palette.textSoft)),
-          const Spacer(),
-          Text('PRÓXIMAMENTE', style: OndaText.etiqueta(size: 11, color: Palette.textFaint)),
-          Text(source, style: OndaText.cuerpo(11, color: Palette.textFaint)),
+    final last = stats.foodCpi.last;
+    final general = stats.generalCpi.isEmpty ? null : stats.generalCpi.last;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            Flexible(
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(percentSigned(last.value),
+                    style: OndaText.cifra(52, color: last.value > 0 ? Palette.ambar : Palette.lime)),
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.only(bottom: 6),
+                child: Text('la comida en un año\n(${monthYear(last.period)})',
+                    style: OndaText.cuerpo(13, color: Palette.textSoft)),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        Text.rich(TextSpan(style: OndaText.cuerpo(15), children: [
+          const TextSpan(text: 'Lo que hace un año eran 100 € de compra, hoy cuesta '),
+          TextSpan(text: euros(stats.basketToday(100)!), style: OndaText.cuerpo(15, weight: 700)),
+          const TextSpan(text: '.'),
+        ])),
+        const SizedBox(height: 14),
+        SizedBox(height: 50, child: _RateBars(points: stats.foodCpi.length > 12
+            ? stats.foodCpi.sublist(stats.foodCpi.length - 12) : stats.foodCpi)),
+        const SizedBox(height: 4),
+        Text('Subida anual de los alimentos, últimos 12 meses', style: OndaText.cuerpo(11, color: Palette.textFaint)),
+        if (general != null) ...[
+          const SizedBox(height: 10),
+          Text('Todos los precios (IPC general), ${monthYear(general.period)}: ${percentSigned(general.value)}',
+              style: OndaText.cuerpo(13)),
         ],
-      ),
+        if (stats.isSample) Text('Datos de ejemplo', style: OndaText.cuerpo(11, color: Palette.textFaint)),
+      ],
+    );
+  }
+}
+
+/// Monthly annual-change bars; the latest month highlighted.
+class _RateBars extends StatelessWidget {
+  const _RateBars({required this.points});
+  final List<StatPoint> points;
+
+  @override
+  Widget build(BuildContext context) {
+    final hi = points.map((p) => p.value.abs()).fold<double>(0.1, (a, b) => b > a ? b : a);
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: [
+        for (final (i, p) in points.indexed)
+          Expanded(
+            child: Container(
+              margin: const EdgeInsets.symmetric(horizontal: 2),
+              height: 6 + 44 * (p.value.abs() / hi),
+              decoration: BoxDecoration(
+                color: i == points.length - 1 ? Palette.ambar : Palette.line,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+class _SalaryCard extends ConsumerWidget {
+  const _SalaryCard();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return _Card(
+      title: 'Salario',
+      source: 'INE · Encuesta Anual de Estructura Salarial (ganancia bruta anual por trabajador)',
+      child: switch (ref.watch(spainStatsProvider)) {
+        AsyncData(:final value) when value.salaryMean.isNotEmpty => _Salary(stats: value),
+        AsyncError() => Text('No hemos podido cargar los salarios.', style: OndaText.cuerpo(14, color: Palette.textSoft)),
+        AsyncData() => Text('Sin datos todavía.', style: OndaText.cuerpo(14, color: Palette.textSoft)),
+        _ => const LinearProgressIndicator(color: Palette.lime, backgroundColor: Palette.line),
+      },
+    );
+  }
+}
+
+class _Salary extends StatelessWidget {
+  const _Salary({required this.stats});
+  final SpainStats stats;
+
+  @override
+  Widget build(BuildContext context) {
+    final mean = stats.salaryMean.last;
+    final median = stats.salaryMedian.isEmpty ? null : stats.salaryMedian.last;
+    final change = stats.salaryChangePct;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Expanded(child: _Figure(label: 'MEDIA ${mean.period.year}', value: eurosWhole(mean.value))),
+            if (median != null)
+              Expanded(child: _Figure(label: 'MEDIANA ${median.period.year}', value: eurosWhole(median.value), lime: true)),
+          ],
+        ),
+        const SizedBox(height: 10),
+        if (median != null)
+          Text('La mitad de los trabajadores gana menos de ${eurosWhole(median.value)} brutos al año. '
+              'La media sale más alta porque la suben los sueldos más altos.',
+              style: OndaText.cuerpo(13, color: Palette.textSoft)),
+        if (change != null) ...[
+          const SizedBox(height: 8),
+          Text('${percentSigned(change)} frente a ${mean.period.year - 1}', style: OndaText.cuerpo(14, weight: 700)),
+        ],
+        if (stats.isSample) Text('Datos de ejemplo', style: OndaText.cuerpo(11, color: Palette.textFaint)),
+      ],
+    );
+  }
+}
+
+class _Figure extends StatelessWidget {
+  const _Figure({required this.label, required this.value, this.lime = false});
+  final String label;
+  final String value;
+  final bool lime;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label, style: OndaText.etiqueta(size: 10)),
+        FittedBox(child: Text(value, style: OndaText.cifra(34, color: lime ? Palette.lime : Palette.text))),
+      ],
     );
   }
 }

@@ -9,7 +9,7 @@ Es mi proyecto final: prioriza código claro, explicable y bien probado sobre tr
 ## Concepto (v2, ver /docs/producto/concepto-v2.md)
 Tres pestañas:
 - **Hoy:** feed de ondas y Descubre. Cada onda e historia se valora deslizando un dial (bien / mal / me da igual).
-- **Tu España:** panel de datos reales de la vida en España: carburantes con semáforo, luz, y más adelante salario y cesta de la compra.
+- **Tu España:** panel de datos reales de la vida en España: carburantes con semáforo, luz por horas, cesta de la compra (IPC de alimentos) y salario medio y mediano (INE).
 - **Perfil:** racha, puntos y, con consentimiento explícito, el mapa político del usuario (3 ejes) y el partido al que más se parece.
 
 Capas de contenido de las ondas:
@@ -39,6 +39,7 @@ Cada onda = 4 tarjetas: qué pasó → por qué importa → cómo te llega → q
 - Brent: API de la EIA (publica con ~7 días de retraso). Cambio EUR/USD: API del BCE.
 - Noticias: RSS de medios + GDELT. Orientación de medios: clasificación propia documentada en /docs.
 - Luz: API REData de Red Eléctrica (PVPC por horas). Partidos: CHES 2024 (chesdata.eu).
+- IPC (alimentos y general) y salarios (Encuesta Anual de Estructura Salarial): API Tempus del INE, tabla `indicadores`.
 - La app NUNCA llama a fuentes externas: solo lee de Supabase.
 
 ## Tablas principales

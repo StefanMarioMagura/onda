@@ -10,7 +10,7 @@ gesto, y con tus opiniones te enseña dónde estás tú en el mapa político y c
 | Pestaña | Qué es |
 |---|---|
 | **Hoy** | El feed: ondas del día (4 tarjetas) y después "Descubre" sin final. Cada onda y cada historia se puede **valorar** deslizando un dial. |
-| **Tu España** | Panel de datos de la vida en España: carburantes con semáforo, precio de la luz hoy, y en próximas versiones salario medio y cesta de la compra. Solo datos reales. |
+| **Tu España** | Panel de datos de la vida en España: carburantes con semáforo, precio de la luz hora a hora, cesta de la compra (IPC de alimentos: "lo que hace un año eran 100 €, hoy cuesta…") y salario medio y mediano. Solo datos oficiales (Ministerio, Red Eléctrica, INE). |
 | **Perfil** | Tu racha y tus puntos y, si lo activas, **tu mapa político**: dónde te sitúan tus valoraciones, a qué partido te pareces más, su líder y tu "familia" política. |
 
 ## Valorar una noticia

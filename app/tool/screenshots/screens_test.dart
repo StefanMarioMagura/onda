@@ -64,6 +64,11 @@ void main() {
     await tester.tap(find.text('Tu España'));
     await tester.pumpAndSettle();
     await shot('05_tu_espana');
+    await tester.drag(find.byType(ListView).first, const Offset(0, -700));
+    await tester.pumpAndSettle();
+    await shot('05b_tu_espana_compra_salario');
+    await tester.drag(find.byType(ListView).first, const Offset(0, 700));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('CARBURANTES'));
     await tester.pumpAndSettle();
     await shot('06_carburantes');

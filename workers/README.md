@@ -35,6 +35,13 @@ EIA_API_KEY=... .venv/bin/python -m onda_workers.brent --dry-run --since 2025-12
   Lo lanza el workflow `semaforo-daily` justo después de cargar los precios diarios.
 - `backtest`: informe *walk-forward* de todas las variantes. Workflow manual `semaforo-backtest`.
 
+## Luz e INE
+- `luz`: precio PVPC por horas de Red Eléctrica (API REData, sin clave) en `luz_horaria`. Workflow
+  `ingest-luz` a las 21:30 (cuando ya está el de mañana) y por la mañana como respaldo.
+- `ine`: IPC general y de alimentos (variación anual) y salario medio y mediano (Encuesta Anual de
+  Estructura Salarial) desde la API Tempus del INE, en `indicadores`. Workflow diario `ingest-ine`;
+  relee los últimos periodos porque el INE revisa datos.
+
 ## Desarrollo
 
 ```bash
