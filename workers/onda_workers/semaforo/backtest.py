@@ -1,8 +1,9 @@
-"""Walk-forward backtest of the semáforo v1, as a Markdown report.
+"""Walk-forward backtest of the semáforo, as a Markdown report.
 
-Compares, for each fuel, the model with the "tomorrow same as today" baseline,
-both with Brent known up to the same day (lag 0, ideal) and with the EIA's
-real publication delay (lag 7).
+For each fuel, compares every model variant with the "tomorrow same as today"
+baseline using the Brent we would really have (the EIA publishes ~7 days
+late), plus v1 with same-day Brent as an ideal reference. All rows of a table
+are scored on exactly the same days.
 
 Usage:
     DATABASE_URL=postgresql://... python -m onda_workers.semaforo.backtest > report.md
@@ -20,11 +21,11 @@ import sys
 
 import pandas as pd
 
-from .features import build_dataset
-from .model import SemaforoModel, class_balance, evaluate, walk_forward
+from .features import ALL_FEATURES, build_dataset
+from .model import V1, V1_1, VARIANTS, SemaforoModel, class_balance, evaluate, walk_forward
 
 FUELS = {"gasoleo_a": "Gasóleo A", "gasolina_95_e5": "Gasolina 95"}
-LAGS = {0: "Brent al día (ideal)", 7: "Brent con 7 días de retraso (real)"}
+REAL_LAG = 7    # days the EIA's Brent arrives late
 TEST_YEARS = [2021, 2022, 2023, 2024, 2025, 2026]
 
 
@@ -59,51 +60,51 @@ def pct(x: float) -> str:
     return "–" if x != x else f"{x:.0%}"
 
 
+def _row(name: str, m) -> str:
+    return (f"| {name} | {m.days} | {m.mae_model_cents:.2f} c | {m.mae_baseline_cents:.2f} c "
+            f"| {pct(m.skill)} | {pct(m.accuracy_model)} | {pct(m.accuracy_baseline)} "
+            f"| {m.verde_days} ({pct(m.verde_hit_rate)}) | {m.rojo_days} ({pct(m.rojo_hit_rate)}) |")
+
+
 def report(prices: pd.DataFrame, brent: pd.Series) -> str:
-    out = ["# Semáforo v1 · backtest", ""]
+    out = ["# Semáforo · backtest", ""]
     first, last = prices["day"].min().date(), prices["day"].max().date()
     out += [f"Precios nacionales del {first} al {last}; Brent del "
             f"{brent.index.min().date()} al {brent.index.max().date()}.",
             f"Validación *walk-forward*: cada año se predice con un modelo entrenado solo con "
-            f"los años anteriores ({TEST_YEARS[0]}–{TEST_YEARS[-1]}).", ""]
+            f"los años anteriores ({TEST_YEARS[0]}–{TEST_YEARS[-1]}). Salvo la fila \"ideal\", "
+            f"el Brent llega con {REAL_LAG} días de retraso, como en la realidad.", ""]
 
     for fuel, fuel_name in FUELS.items():
         series = prices[prices["fuel"] == fuel].set_index("day")["avg_price"]
-        out += [f"## {fuel_name}", ""]
-        out += ["| Brent | Días | Error modelo | Error referencia | Mejora | Acierto modelo "
+        real = build_dataset(series, brent, brent_lag_days=REAL_LAG).dropna(subset=ALL_FEATURES)
+        # Same days for every row: the ideal dataset is cut to the real one's days.
+        ideal = build_dataset(series, brent, brent_lag_days=0).reindex(real.index).dropna(subset=["brent_7"])
+
+        out += [f"## {fuel_name}", "",
+                "| Modelo | Días | Error modelo | Error referencia | Mejora | Acierto modelo "
                 "| Acierto referencia | Verdes (aciertan) | Rojos (aciertan) |",
                 "|---|---|---|---|---|---|---|---|---|"]
-        balance = None
-        per_year = {}
-        for lag, lag_name in LAGS.items():
-            data = build_dataset(series, brent, brent_lag_days=lag)
-            results = walk_forward(data, TEST_YEARS)
-            m = evaluate(results)
-            balance = class_balance(results)
-            per_year[lag] = {y: evaluate(r) for y, r in results.groupby("year")}
-            out.append(
-                f"| {lag_name} | {m.days} | {m.mae_model_cents:.2f} c | {m.mae_baseline_cents:.2f} c "
-                f"| {pct(m.skill)} | {pct(m.accuracy_model)} | {pct(m.accuracy_baseline)} "
-                f"| {m.verde_days} ({pct(m.verde_hit_rate)}) | {m.rojo_days} ({pct(m.rojo_hit_rate)}) |")
+        out.append(_row(f"{V1.name} — Brent al día (ideal)", evaluate(walk_forward(ideal, TEST_YEARS, V1))))
+        results = {v: walk_forward(real, TEST_YEARS, v) for v in VARIANTS}
+        for variant, res in results.items():
+            out.append(_row(variant.name, evaluate(res)))
+        balance = class_balance(results[V1])
         out += ["", f"Reparto real de días: verde {pct(balance['verde'])}, ámbar "
                 f"{pct(balance['ambar'])}, rojo {pct(balance['rojo'])}.", ""]
 
-        out += ["Mejora sobre la referencia por año (Brent con retraso real):", "",
+        out += [f"Por año, {V1_1.name}:", "",
                 "| Año | Días | Error modelo | Error referencia | Mejora | Acierto modelo |",
                 "|---|---|---|---|---|---|"]
-        for year, m in per_year[7].items():
+        for year, r in results[V1_1].groupby("year"):
+            m = evaluate(r)
             out.append(f"| {year} | {m.days} | {m.mae_model_cents:.2f} c | "
                        f"{m.mae_baseline_cents:.2f} c | {pct(m.skill)} | {pct(m.accuracy_model)} |")
 
-        final = SemaforoModel.fit(build_dataset(series, brent, brent_lag_days=7))
-        coef = final.coefficients()
-        out += ["", "Coeficientes con todos los datos (retraso real):", "",
-                f"- `brent_7` = {coef['brent_7']:.3f}, `brent_14` = {coef['brent_14']:.3f}: "
-                f"céntimos en el surtidor por céntimo/litro de Brent en cada ventana.",
-                "- Día de la semana (vs. lunes, en céntimos): " + ", ".join(
-                    f"{k.removeprefix('dia_')} {v * 100:+.2f}" for k, v in coef.items()
-                    if k.startswith("dia_")),
-                ""]
+        coef = SemaforoModel.fit(real, V1_1).coefficients()
+        out += ["", f"Coeficientes de {V1_1.name} con todos los datos:", "",
+                *[f"- `{k}` = {v:+.3f}" for k, v in coef.items() if k != "intercept"],
+                "", "(Variación del precio a 7 días, en €/l, por cada €/l de la variable.)", ""]
     out += ["*Error* = error absoluto medio del cambio de precio a 7 días. *Mejora* = "
             "1 − error modelo / error referencia. La referencia es \"mañana igual que hoy\": "
             "cambio 0, siempre ámbar.", ""]

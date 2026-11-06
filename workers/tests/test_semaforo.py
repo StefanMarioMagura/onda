@@ -13,7 +13,16 @@ from onda_workers.semaforo.features import (
     classify,
     to_daily,
 )
-from onda_workers.semaforo.model import SemaforoModel, class_balance, evaluate, walk_forward
+from onda_workers.semaforo.model import (
+    PUMP_ONLY,
+    V1,
+    V1_1,
+    SemaforoModel,
+    class_balance,
+    design_matrix,
+    evaluate,
+    walk_forward,
+)
 
 
 def days(start, n):
@@ -144,9 +153,9 @@ def test_walk_forward_never_trains_on_test_period(monkeypatch):
     seen = []
     original = SemaforoModel.fit.__func__
 
-    def spy(cls, train):
+    def spy(cls, train, variant=None):
         seen.append(train.index.max())
-        return original(cls, train)
+        return original(cls, train, variant) if variant else original(cls, train)
 
     monkeypatch.setattr(SemaforoModel, "fit", classmethod(spy))
     walk_forward(synthetic(n=1200), [2020, 2021])
@@ -181,3 +190,66 @@ def test_evaluate_baseline_accuracy_is_share_of_ambar():
     assert (m.verde_days, m.verde_hit_rate) == (2, 0.5)
     assert m.rojo_days == 0
     assert class_balance(results) == {VERDE: 0.25, AMBAR: 0.5, ROJO: 0.25}
+
+
+# --- v1.1 pump features -----------------------------------------------------
+
+def long_series(n=200, start="2024-01-01"):
+    idx = days(start, n)
+    prices = pd.Series(1.5 + np.arange(n) * 0.001, index=idx)    # +1 mil/day
+    brent = pd.Series(80.0, index=idx)
+    return prices, brent
+
+
+def test_price_7_is_the_last_week_change():
+    prices, brent = long_series()
+    data = build_dataset(prices, brent, brent_lag_days=7)
+    assert data["price_7"].dropna().round(6).eq(0.007).all()
+
+
+def test_margin_gap_measures_distance_from_recent_normal():
+    prices, brent = long_series()
+    prices.iloc[150:] += 0.05                       # margin jumps 5 cents on day 150
+    data = build_dataset(prices, brent, brent_lag_days=7)
+    day = prices.index[150]
+    before = prices.index[149]
+    assert data.loc[day, "margin_gap"] - data.loc[before, "margin_gap"] > 0.04
+
+
+def test_margin_gap_needs_two_months_of_history():
+    prices, brent = long_series()
+    data = build_dataset(prices, brent, brent_lag_days=0)
+    first_known = data["margin_gap"].first_valid_index()
+    assert first_known >= prices.index[59]
+
+
+@pytest.mark.parametrize("feature", ["price_7", "margin_gap"])
+def test_pump_features_never_look_ahead(feature):
+    """Changing prices after day t must not change features on day t."""
+    prices, brent = long_series()
+    t = prices.index[120]
+    changed = prices.copy()
+    changed[changed.index > t] += 0.3
+    a = build_dataset(prices, brent, brent_lag_days=7).loc[:t, feature]
+    b = build_dataset(changed, brent, brent_lag_days=7).loc[:t, feature]
+    pd.testing.assert_series_equal(a, b)
+
+
+def test_variants_use_only_their_features():
+    data = build_dataset(*long_series(), brent_lag_days=7).dropna()
+    assert list(design_matrix(data, PUMP_ONLY).columns) == ["price_7", "margin_gap"]
+    assert "dia_vie" not in design_matrix(data, V1_1).columns
+    assert "dia_vie" in design_matrix(data, V1).columns
+
+
+def test_model_learns_mean_reversion_of_the_margin():
+    """If prices fall back when the margin is high, margin_gap gets a negative coefficient."""
+    rng = np.random.default_rng(3)
+    idx = days("2019-01-01", 900)
+    data = build_dataset(pd.Series(1.5, index=idx), pd.Series(80.0, index=idx), brent_lag_days=0)
+    data["price_7"] = rng.normal(0, 0.01, len(data))
+    data["margin_gap"] = rng.normal(0, 0.02, len(data))
+    data["change_7d"] = -0.5 * data["margin_gap"] + rng.normal(0, 0.002, len(data))
+    coef = SemaforoModel.fit(data, PUMP_ONLY).coefficients()
+    assert coef["margin_gap"] == pytest.approx(-0.5, abs=0.05)
+    assert coef["price_7"] == pytest.approx(0, abs=0.05)

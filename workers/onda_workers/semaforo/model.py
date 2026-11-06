@@ -1,6 +1,8 @@
-"""Semáforo v1: linear regression of the 7-day price change.
+"""Semáforo: linear regression of the 7-day price change.
 
-change_7d ~ brent_7 + brent_14 + weekday (one-hot, Monday as reference)
+Variants (see VARIANTS):
+- v1 (CLAUDE.md):  change_7d ~ brent_7 + brent_14 + weekday (one-hot, Monday as reference)
+- v1.1:            change_7d ~ brent_7 + brent_14 + price_7 + margin_gap
 
 Plus the evaluation tools: a walk-forward backtest by year and metrics
 against the "tomorrow same as today" baseline (expected change 0, so always
@@ -14,33 +16,54 @@ from dataclasses import dataclass
 import pandas as pd
 from sklearn.linear_model import LinearRegression
 
-from .features import AMBAR, FEATURES, HORIZON_DAYS, ROJO, VERDE, classify
+from .features import AMBAR, BRENT_FEATURES, HORIZON_DAYS, PUMP_FEATURES, ROJO, VERDE, classify
 
 WEEKDAYS = ["lun", "mar", "mie", "jue", "vie", "sab", "dom"]
 
 
-def design_matrix(data: pd.DataFrame) -> pd.DataFrame:
-    """Brent features plus weekday dummies (Monday is the baseline)."""
-    x = data[FEATURES].copy()
-    for day in range(1, 7):
-        x[f"dia_{WEEKDAYS[day]}"] = (data["weekday"] == day).astype(float)
+@dataclass(frozen=True)
+class Variant:
+    name: str
+    features: tuple[str, ...]
+    weekday: bool
+
+
+V1 = Variant("v1 · Brent + día de la semana", tuple(BRENT_FEATURES), weekday=True)
+V1_1 = Variant("v1.1 · Brent + tendencia + margen", tuple(BRENT_FEATURES + PUMP_FEATURES), weekday=False)
+PUMP_ONLY = Variant("Solo surtidor · tendencia + margen", tuple(PUMP_FEATURES), weekday=False)
+VARIANTS = [V1, V1_1, PUMP_ONLY]
+
+
+def usable(data: pd.DataFrame, variant: Variant) -> pd.DataFrame:
+    """Rows where every feature of the variant is known."""
+    return data.dropna(subset=list(variant.features))
+
+
+def design_matrix(data: pd.DataFrame, variant: Variant = V1) -> pd.DataFrame:
+    """The variant's features, plus weekday dummies if it uses them (Monday is the baseline)."""
+    x = data[list(variant.features)].copy()
+    if variant.weekday:
+        for day in range(1, 7):
+            x[f"dia_{WEEKDAYS[day]}"] = (data["weekday"] == day).astype(float)
     return x
 
 
 @dataclass
 class SemaforoModel:
     regression: LinearRegression
+    variant: Variant = V1
 
     @classmethod
-    def fit(cls, data: pd.DataFrame) -> "SemaforoModel":
-        train = data.dropna(subset=["change_7d"])
+    def fit(cls, data: pd.DataFrame, variant: Variant = V1) -> "SemaforoModel":
+        train = usable(data, variant).dropna(subset=["change_7d"])
         if train.empty:
             raise ValueError("No rows with a known target to train on")
-        return cls(LinearRegression().fit(design_matrix(train), train["change_7d"]))
+        regression = LinearRegression().fit(design_matrix(train, variant), train["change_7d"])
+        return cls(regression, variant)
 
     def predict(self, data: pd.DataFrame) -> pd.Series:
-        """Expected 7-day change in €/l for each row."""
-        return pd.Series(self.regression.predict(design_matrix(data)), index=data.index)
+        """Expected 7-day change in €/l for each row (rows must have all the variant's features)."""
+        return pd.Series(self.regression.predict(design_matrix(data, self.variant)), index=data.index)
 
     def coefficients(self) -> dict[str, float]:
         names = list(self.regression.feature_names_in_)
@@ -48,14 +71,14 @@ class SemaforoModel:
                 **dict(zip(names, map(float, self.regression.coef_)))}
 
 
-def walk_forward(data: pd.DataFrame, test_years: list[int]) -> pd.DataFrame:
+def walk_forward(data: pd.DataFrame, test_years: list[int], variant: Variant = V1) -> pd.DataFrame:
     """Backtest: for each year, train on everything before it and predict it.
 
     A training row on day d needs the price of d+7, so rows within 7 days of
     the test year are dropped from training: otherwise the model would have
     seen prices from inside the test period.
     """
-    scored = data.dropna(subset=["change_7d"])
+    scored = usable(data, variant).dropna(subset=["change_7d"])
     results = []
     for year in test_years:
         start = pd.Timestamp(year=year, month=1, day=1)
@@ -63,7 +86,7 @@ def walk_forward(data: pd.DataFrame, test_years: list[int]) -> pd.DataFrame:
         test = scored[scored.index.year == year]
         if train.empty or test.empty:
             continue
-        model = SemaforoModel.fit(train)
+        model = SemaforoModel.fit(train, variant)
         results.append(pd.DataFrame({
             "change_7d": test["change_7d"],
             "predicted": model.predict(test),

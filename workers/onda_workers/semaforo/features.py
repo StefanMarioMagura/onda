@@ -8,6 +8,11 @@ For each decision day t (one row per calendar day):
   about a week of delay, so with `brent_lag_days=7` the latest Brent usable
   on day t is the one from t-7.
 - `weekday`: 0 = Monday ... 6 = Sunday.
+- `price_7` (v1.1): change of the pump price over the last 7 days. Known on
+  day t with no delay, unlike Brent.
+- `margin_gap` (v1.1): today's margin (pump price minus Brent known on t, both
+  in €/l) minus its average over the last 90 days. Margins tend to return to
+  normal, so a high margin suggests prices will fall and a low one, rise.
 
 Brent in €/barrel is converted to €/litre (÷ 158.987) so the model's
 coefficients read directly as "cents at the pump per cent of crude".
@@ -25,7 +30,10 @@ WINDOW_DAYS = 7
 THRESHOLD_EUR = 0.01
 
 VERDE, AMBAR, ROJO = "verde", "ambar", "rojo"
-FEATURES = ["brent_7", "brent_14"]
+BRENT_FEATURES = ["brent_7", "brent_14"]
+PUMP_FEATURES = ["price_7", "margin_gap"]
+ALL_FEATURES = BRENT_FEATURES + PUMP_FEATURES
+MARGIN_WINDOW_DAYS = 90
 
 
 def classify(change_eur: float) -> str:
@@ -73,6 +81,11 @@ def build_dataset(prices: pd.Series, brent_eur_bbl: pd.Series, brent_lag_days: i
     data["brent_7"] = (known - known.shift(WINDOW_DAYS)).reindex(price.index)
     data["brent_14"] = (known.shift(WINDOW_DAYS) - known.shift(2 * WINDOW_DAYS)).reindex(price.index)
     data["weekday"] = data.index.day_of_week
+    data["price_7"] = price - price.shift(WINDOW_DAYS)
+    margin = price - known.reindex(price.index)
+    data["margin_gap"] = margin - margin.rolling(MARGIN_WINDOW_DAYS, min_periods=60).mean()
     data["change_7d"] = price.shift(-HORIZON_DAYS) - price
     data["actual"] = data["change_7d"].map(classify, na_action="ignore")
-    return data.dropna(subset=["price", *FEATURES])
+    # Pump features may still be NaN (gaps, warm-up): each model variant drops
+    # the rows it cannot use.
+    return data.dropna(subset=["price", *BRENT_FEATURES])
