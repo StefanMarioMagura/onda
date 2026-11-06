@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../app/theme.dart';
 import '../../data/sample_data.dart';
+import '../../data/waves_repository.dart';
 import '../../domain/discover.dart';
 import '../../domain/rewards.dart';
 import '../../domain/wave.dart';
@@ -51,7 +52,15 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final waves = ref.watch(todayWavesProvider);
+    return switch (ref.watch(todayWavesProvider)) {
+      AsyncData(:final value) => _feed(value),
+      AsyncError() => SafeArea(child: _LoadError(onRetry: () => ref.invalidate(todayWavesProvider))),
+      _ => const SafeArea(child: Center(child: CircularProgressIndicator(color: Palette.lime))),
+    };
+  }
+
+  Widget _feed(TodayWaves today) {
+    final waves = today.waves;
     final pool = ref.watch(discoverPoolProvider);
 
     return SafeArea(
@@ -59,6 +68,14 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
       child: Column(
         children: [
           TopBar(trailing: _SectionLabel(index: _current, waveCount: waves.length)),
+          if (today.isSample && _current < waves.length)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: Text('CONTENIDO DE EJEMPLO', style: OndaText.etiqueta(size: 10, color: Palette.textFaint)),
+              ),
+            ),
           Expanded(
             child: PageView.builder(
               controller: _pages,
@@ -78,6 +95,34 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
                 return DiscoverPage(key: ValueKey(next.key), item: next.item);
               },
             ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _LoadError extends StatelessWidget {
+  const _LoadError({required this.onRetry});
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('NO HEMOS PODIDO CARGAR LAS ONDAS DE HOY', style: OndaText.impacto(30)),
+          const SizedBox(height: 10),
+          Text('Comprueba tu conexión e inténtalo de nuevo.', style: OndaText.cuerpo(15, color: Palette.textSoft)),
+          const SizedBox(height: 16),
+          FilledButton(
+            onPressed: onRetry,
+            style: FilledButton.styleFrom(
+              backgroundColor: Palette.lime, foregroundColor: Palette.night, shape: const StadiumBorder()),
+            child: Text('REINTENTAR', style: OndaText.etiqueta(color: Palette.night, size: 13)),
           ),
         ],
       ),

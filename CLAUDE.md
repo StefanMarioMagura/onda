@@ -23,7 +23,7 @@ Cada onda = 4 tarjetas: qué pasó → por qué importa → cómo te llega → q
 - App: Flutter (Dart) + Riverpod + go_router. Mapas con flutter_map. Animaciones con Rive o Lottie.
 - Backend: Supabase (Postgres + PostGIS, Auth, Storage). Row Level Security siempre activada.
 - Workers: Python (pandas, scikit-learn/statsmodels), lanzados con GitHub Actions (cron) o pg_cron.
-- IA de ondas: API de un modelo de lenguaje con salida JSON de esquema fijo. Toda onda pasa por revisión humana antes de publicarse.
+- IA de ondas: API de Claude (`claude-opus-5-5`) con salida JSON de esquema fijo (ADR 0007). Toda onda es un borrador hasta que una persona la aprueba con `onda_workers.news.review`.
 - Notificaciones: Firebase Cloud Messaging. Analítica: PostHog. Errores: Sentry.
 
 ## Estructura del repositorio
@@ -37,7 +37,7 @@ Cada onda = 4 tarjetas: qué pasó → por qué importa → cómo te llega → q
 ## Fuentes de datos
 - Precios de todas las gasolineras: API REST de precios de carburantes del Ministerio (Geoportal de Gasolineras).
 - Brent: API de la EIA (publica con ~7 días de retraso). Cambio EUR/USD: API del BCE.
-- Noticias: RSS de medios + GDELT. Orientación de medios: clasificación propia documentada en /docs.
+- Noticias: RSS de 12 medios (titular + enlace), ver /docs/producto/medios.md (orilla de cada medio, provisional). GDELT, más adelante.
 - Luz: API REData de Red Eléctrica (PVPC por horas). Partidos: CHES 2024 (chesdata.eu).
 - IPC (alimentos y general) y salarios (Encuesta Anual de Estructura Salarial): API Tempus del INE, tabla `indicadores`.
 - La app NUNCA llama a fuentes externas: solo lee de Supabase.

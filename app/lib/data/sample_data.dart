@@ -5,12 +5,14 @@ import '../domain/affinity.dart';
 import '../domain/discover.dart';
 import '../domain/fuel.dart';
 import '../domain/wave.dart';
+import 'waves_repository.dart';
 
 /// Sample content for the prototype. Clearly fictional: ondas and Descubre
 /// are labelled in the UI until the ondas engine exists; the pocket sample is
 /// only used when Supabase is not configured (and in tests).
 
-final todayWavesProvider = Provider<List<Wave>>((ref) => _waves);
+/// Sample ondas, used until real ones are published (and in tests).
+const sampleWaves = _waves;
 
 PocketSnapshot samplePocket(Fuel fuel) => fuel == Fuel.gasoleoA ? _gasoleo : _gasolina;
 
@@ -23,7 +25,7 @@ final discoverPoolProvider = Provider<List<DiscoverItem>>((ref) => _discover);
 
 /// Editorial stances of every rateable item, by id (for the political map).
 final stancesProvider = Provider<Map<String, Stance>>((ref) => {
-      for (final w in ref.watch(todayWavesProvider))
+      for (final w in ref.watch(todayWavesProvider).value?.waves ?? sampleWaves)
         if (w.stance != null) w.id: w.stance!,
       for (final d in ref.watch(discoverPoolProvider))
         if (d.stance != null) d.id: d.stance!,

@@ -7,7 +7,7 @@ import 'package:onda/domain/fuel.dart';
 
 void main() {
   final container = ProviderContainer();
-  final waves = container.read(todayWavesProvider);
+  const waves = sampleWaves;
 
   test('today has 5 to 8 ondas before Descubre starts', () {
     expect(waves.length, inInclusiveRange(5, 8));

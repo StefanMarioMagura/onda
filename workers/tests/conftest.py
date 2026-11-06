@@ -26,7 +26,7 @@ MIGRATIONS = [
     if m.stem.split("_", 1)[1] not in SUPABASE_ONLY
 ]
 
-TABLES = "public.precios, public.gasolineras, public.capturas, public.precios_diarios, public.brent_diario, public.semaforo_diario, public.votos_noticias, public.luz_horaria, public.indicadores"
+TABLES = "public.precios, public.gasolineras, public.capturas, public.precios_diarios, public.brent_diario, public.semaforo_diario, public.votos_noticias, public.luz_horaria, public.indicadores, public.ondas, public.eventos, public.noticias"
 
 _STATIONS_ARGS = "(text, double precision, double precision, double precision, integer)"
 FUNCTIONS = (f"public.cheapest_stations{_STATIONS_ARGS}, public.nearby_prices{_STATIONS_ARGS}, "

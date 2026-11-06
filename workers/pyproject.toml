@@ -11,14 +11,16 @@ dependencies = [
 [project.optional-dependencies]
 # Kept out of the base install so the 30-min ingestion stays light.
 model = ["pandas>=2.2", "scikit-learn>=1.5"]
-dev = ["pytest>=8", "onda-workers[model]"]
+# Ondas engine: RSS parsing, headline clustering and the Claude API.
+news = ["feedparser>=6.0", "scikit-learn>=1.5", "anthropic>=2.6"]
+dev = ["pytest>=8", "onda-workers[model,news]"]
 
 [build-system]
 requires = ["setuptools>=69"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools]
-packages = ["onda_workers", "onda_workers.semaforo"]
+packages = ["onda_workers", "onda_workers.semaforo", "onda_workers.news"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

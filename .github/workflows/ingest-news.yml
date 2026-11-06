@@ -1,0 +1,31 @@
+name: Ingest news headlines
+
+on:
+  schedule:
+    - cron: "12 * * * *"     # hourly
+  workflow_dispatch:
+
+concurrency:
+  group: ingest-news
+  cancel-in-progress: false
+
+jobs:
+  ingest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: workers
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: workers/pyproject.toml
+      - name: Install
+        run: pip install '.[news]'
+      - name: Store headline + link from each outlet
+        env:
+          DATABASE_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: python -m onda_workers.news.ingest
