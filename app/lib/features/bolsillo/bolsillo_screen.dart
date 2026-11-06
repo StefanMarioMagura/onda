@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../app/theme.dart';
+import '../../data/pocket_repository.dart';
 import '../../data/sample_data.dart';
 import '../../domain/format.dart';
 import '../../domain/fuel.dart';
@@ -48,7 +49,7 @@ class _BolsilloScreenState extends ConsumerState<BolsilloScreen> {
                     const SizedBox(width: 12),
                     Expanded(
                       child: Text(
-                        '${usingSampleData ? 'Datos de ejemplo · ' : ''}${pocket.areaName}',
+                        _dataLabel(pocket.value),
                         textAlign: TextAlign.right,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
@@ -60,15 +61,73 @@ class _BolsilloScreenState extends ConsumerState<BolsilloScreen> {
                 const SizedBox(height: 14),
                 _FuelTabs(selected: _fuel, onSelected: (f) => setState(() => _fuel = f)),
                 const SizedBox(height: 16),
-                SemaforoPanel(pocket: pocket),
-                const SizedBox(height: 16),
-                _PriceCard(pocket: pocket),
-                const SizedBox(height: 24),
-                _Stations(pocket: pocket),
-                const SizedBox(height: 16),
-                _SavingCard(saving: saving),
+                ...switch (pocket) {
+                  AsyncData(:final value) => [
+                      SemaforoPanel(pocket: value),
+                      const SizedBox(height: 16),
+                      _PriceCard(pocket: value),
+                      const SizedBox(height: 24),
+                      _Stations(pocket: value),
+                      const SizedBox(height: 16),
+                      _SavingCard(saving: saving),
+                    ],
+                  AsyncError() => [
+                      _ErrorCard(onRetry: () => ref.invalidate(pocketProvider(_fuel))),
+                    ],
+                  _ => [const _Loading()],
+                },
               ],
             ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _dataLabel(PocketSnapshot? pocket) {
+    if (pocket == null) return '';
+    if (pocket.isSample) return 'Datos de ejemplo · ${pocket.areaName}';
+    final day = pocket.forecastDay;
+    return day == null ? pocket.priceArea : 'Datos del ${day.day}/${day.month} · ${pocket.priceArea}';
+  }
+}
+
+class _Loading extends StatelessWidget {
+  const _Loading();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Padding(
+      padding: EdgeInsets.symmetric(vertical: 80),
+      child: Center(child: CircularProgressIndicator(color: Palette.lime, strokeWidth: 3)),
+    );
+  }
+}
+
+class _ErrorCard extends StatelessWidget {
+  const _ErrorCard({required this.onRetry});
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(color: Palette.surface, borderRadius: BorderRadius.circular(16)),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('NO HEMOS PODIDO CARGAR LOS PRECIOS', style: OndaText.impacto(26)),
+          const SizedBox(height: 8),
+          Text('Comprueba tu conexión e inténtalo de nuevo.', style: OndaText.cuerpo(15, color: Palette.textSoft)),
+          const SizedBox(height: 16),
+          FilledButton(
+            onPressed: onRetry,
+            style: FilledButton.styleFrom(
+              backgroundColor: Palette.lime,
+              foregroundColor: Palette.night,
+              shape: const StadiumBorder(),
+            ),
+            child: Text('REINTENTAR', style: OndaText.etiqueta(color: Palette.night, size: 13)),
           ),
         ],
       ),
@@ -121,7 +180,7 @@ class _PriceCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('PRECIO MEDIO EN TU ZONA', style: OndaText.etiqueta()),
+          Text('PRECIO MEDIO · ${pocket.priceArea.toUpperCase()}', style: OndaText.etiqueta()),
           const SizedBox(height: 8),
           Row(
             crossAxisAlignment: CrossAxisAlignment.baseline,
@@ -171,7 +230,23 @@ class _Stations extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('LAS MÁS BARATAS CERCA', style: OndaText.etiqueta(size: 12, color: Palette.text)),
+        Text('LAS MÁS BARATAS CERCA DE ${pocket.areaName.toUpperCase()}',
+            style: OndaText.etiqueta(size: 12, color: Palette.text)),
+        if (pocket.areaAveragePrice != null)
+          Padding(
+            padding: const EdgeInsets.only(top: 4),
+            child: Text(
+              'Ahorro frente a la media de la zona: ${fuelPrice(pocket.areaAveragePrice!)} €/l '
+              '(${pocket.areaStationCount} gasolineras a menos de 10 km)',
+              style: OndaText.cuerpo(12, color: Palette.textSoft),
+            ),
+          ),
+        if (stations.isEmpty)
+          Padding(
+            padding: const EdgeInsets.only(top: 8),
+            child: Text('No hay gasolineras con precio a menos de 10 km.',
+                style: OndaText.cuerpo(14, color: Palette.textSoft)),
+          ),
         const SizedBox(height: 10),
         for (final (i, s) in stations.indexed) ...[
           Container(
@@ -203,7 +278,7 @@ class _Stations extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
                     Text(fuelPrice(s.price), style: OndaText.cifra(28)),
-                    _SavingLabel(saving: savingEur(referencePrice: pocket.averagePrice, stationPrice: s.price)),
+                    _SavingLabel(saving: savingEur(referencePrice: pocket.stationReferencePrice, stationPrice: s.price)),
                   ],
                 ),
               ],
@@ -249,7 +324,7 @@ class _SavingCard extends StatelessWidget {
                   .copyWith(shadows: [Shadow(color: Palette.lime.withValues(alpha: 0.4), blurRadius: 20)])),
           const SizedBox(width: 14),
           Expanded(
-            child: Text('ahorrados este mes siguiendo el semáforo',
+            child: Text('ahorrados este mes siguiendo el semáforo (ejemplo: llegará con las cuentas de usuario)',
                 style: OndaText.cuerpo(14, color: Palette.textSoft)),
           ),
         ],

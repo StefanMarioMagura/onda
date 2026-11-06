@@ -3,13 +3,12 @@
 /// to rise more than 1 cent/l in 7 days, rojo if it is expected to fall more
 /// than 1 cent/l, ámbar otherwise.
 enum Signal {
-  verde('Llena hoy', 'Se espera que suba'),
-  ambar('Da igual', 'Se espera que se mantenga'),
-  rojo('Espera', 'Se espera que baje');
+  verde('Llena hoy'),
+  ambar('Da igual'),
+  rojo('Espera');
 
-  const Signal(this.verdict, this.trend);
+  const Signal(this.verdict);
   final String verdict;
-  final String trend;
 
   static const thresholdEur = 0.01;
 

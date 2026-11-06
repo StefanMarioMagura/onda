@@ -4,7 +4,10 @@
     {
       "name": "app-web",
       "runtimeExecutable": "bash",
-      "runtimeArgs": ["-c", "cd app && flutter build web --release && python3 -m http.server 8091 --bind 127.0.0.1 -d build/web"],
+      "runtimeArgs": [
+        "-c",
+        "cd app && flutter build web --release --dart-define-from-file=env.json && python3 -m http.server 8091 --bind 127.0.0.1 -d build/web"
+      ],
       "port": 8091
     }
   ]

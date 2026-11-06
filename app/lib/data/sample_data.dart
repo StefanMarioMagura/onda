@@ -5,16 +5,16 @@ import '../domain/discover.dart';
 import '../domain/fuel.dart';
 import '../domain/wave.dart';
 
-/// Sample content for the prototype. Clearly fictional: the UI shows a
-/// "Datos de ejemplo" label until these providers read from Supabase.
-const usingSampleData = true;
+/// Sample content for the prototype. Clearly fictional: ondas and Descubre
+/// are labelled in the UI until the ondas engine exists; the pocket sample is
+/// only used when Supabase is not configured (and in tests).
 
 final todayWavesProvider = Provider<List<Wave>>((ref) => _waves);
 
-final pocketProvider = Provider.family<PocketSnapshot, Fuel>((ref, fuel) =>
-    fuel == Fuel.gasoleoA ? _gasoleo : _gasolina);
+PocketSnapshot samplePocket(Fuel fuel) => fuel == Fuel.gasoleoA ? _gasoleo : _gasolina;
 
-/// Euros saved this month by following the semáforo (sample).
+/// Euros saved this month by following the semáforo. Sample until users have
+/// accounts and their fill-ups are recorded.
 final monthlySavingProvider = Provider<double>((ref) => 4.20);
 
 /// Pool the endless "Descubre" stream is built from (see discoverAt).
@@ -314,6 +314,8 @@ const _waves = [
 ];
 
 final _gasoleo = PocketSnapshot(
+  isSample: true,
+  priceArea: 'tu zona',
   fuel: Fuel.gasoleoA,
   areaName: 'Albacete',
   averagePrice: 1.512,
@@ -333,6 +335,8 @@ final _gasoleo = PocketSnapshot(
 );
 
 final _gasolina = PocketSnapshot(
+  isSample: true,
+  priceArea: 'tu zona',
   fuel: Fuel.gasolina95,
   areaName: 'Albacete',
   averagePrice: 1.598,

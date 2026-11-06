@@ -35,7 +35,7 @@ void main() {
 
   test('pocket average price matches the last day of the series', () {
     for (final fuel in Fuel.values) {
-      final pocket = container.read(pocketProvider(fuel));
+      final pocket = samplePocket(fuel);
       expect(pocket.last30Days, hasLength(30));
       expect(pocket.averagePrice, closeTo(pocket.last30Days.last, 1e-9));
     }

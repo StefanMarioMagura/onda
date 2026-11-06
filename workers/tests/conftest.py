@@ -28,6 +28,9 @@ MIGRATIONS = [
 
 TABLES = "public.precios, public.gasolineras, public.capturas, public.precios_diarios, public.brent_diario, public.semaforo_diario"
 
+_STATIONS_ARGS = "(text, double precision, double precision, double precision, integer)"
+FUNCTIONS = f"public.cheapest_stations{_STATIONS_ARGS}, public.nearby_prices{_STATIONS_ARGS}"
+
 # Minimal stand-ins for what Supabase provides, so the migrations run on vanilla Postgres.
 # The postgis/postgis image pre-installs PostGIS in `public`; Supabase uses `extensions`.
 SUPABASE_SHIM = """
@@ -45,6 +48,7 @@ def conn():
     psycopg = pytest.importorskip("psycopg")
     with psycopg.connect(DB_URL, autocommit=True) as c:
         c.execute(f"drop table if exists {TABLES} cascade")
+        c.execute(f"drop function if exists {FUNCTIONS}")
         c.execute(SUPABASE_SHIM)
         for migration in MIGRATIONS:
             c.execute(migration.read_text())

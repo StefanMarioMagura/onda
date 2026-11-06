@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../app/theme.dart';
-import '../../domain/format.dart';
+import '../../domain/explain.dart';
 import '../../domain/fuel.dart';
 import '../../domain/semaforo.dart';
 
@@ -48,14 +48,7 @@ class SemaforoPanel extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 8),
-          Text.rich(
-            TextSpan(style: OndaText.cuerpo(17), children: [
-              TextSpan(text: '${signal.trend} '),
-              TextSpan(text: cents(pocket.expectedChange7d.abs(), signed: false),
-                  style: OndaText.cuerpo(17, weight: 800, color: color)),
-              const TextSpan(text: ' por litro en 7 días.'),
-            ]),
-          ),
+          Text(forecastSentence(signal, pocket.expectedChange7d), style: OndaText.cuerpo(17, weight: 600)),
           const SizedBox(height: 10),
           Text(pocket.reason, style: OndaText.cuerpo(14, color: Palette.textSoft)),
         ],
