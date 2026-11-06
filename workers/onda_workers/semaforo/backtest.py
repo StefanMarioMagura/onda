@@ -21,11 +21,11 @@ import sys
 
 import pandas as pd
 
-from .features import ALL_FEATURES, build_dataset
+from .data import FUELS, load_series
+from .features import ALL_FEATURES, BRENT_LAG_DAYS, build_dataset
 from .model import CURRENT, V1, VARIANTS, SemaforoModel, class_balance, evaluate, walk_forward
 
-FUELS = {"gasoleo_a": "Gasóleo A", "gasolina_95_e5": "Gasolina 95"}
-REAL_LAG = 7    # days the EIA's Brent arrives late
+REAL_LAG = BRENT_LAG_DAYS
 TEST_YEARS = [2021, 2022, 2023, 2024, 2025, 2026]
 
 
@@ -39,21 +39,7 @@ def load_db(database_url: str) -> tuple[pd.DataFrame, pd.Series]:
     import psycopg
 
     with psycopg.connect(database_url, prepare_threshold=None) as conn:
-        prices = pd.DataFrame(
-            conn.execute(
-                "select day, fuel, avg_price from public.precios_diarios"
-                " where province_id = '00' and fuel = any(%s) order by day",
-                (list(FUELS),),
-            ).fetchall(),
-            columns=["day", "fuel", "avg_price"],
-        )
-        brent = pd.DataFrame(
-            conn.execute("select day, brent_eur from public.brent_diario order by day").fetchall(),
-            columns=["day", "brent_eur"],
-        )
-    prices["day"] = pd.to_datetime(prices["day"])
-    brent["day"] = pd.to_datetime(brent["day"])
-    return prices, brent.set_index("day")["brent_eur"]
+        return load_series(conn, list(FUELS))
 
 
 def pct(x: float) -> str:

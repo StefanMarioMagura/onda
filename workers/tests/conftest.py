@@ -26,7 +26,7 @@ MIGRATIONS = [
     if m.stem.split("_", 1)[1] not in SUPABASE_ONLY
 ]
 
-TABLES = "public.precios, public.gasolineras, public.capturas, public.precios_diarios, public.brent_diario"
+TABLES = "public.precios, public.gasolineras, public.capturas, public.precios_diarios, public.brent_diario, public.semaforo_diario"
 
 # Minimal stand-ins for what Supabase provides, so the migrations run on vanilla Postgres.
 # The postgis/postgis image pre-installs PostGIS in `public`; Supabase uses `extensions`.

@@ -29,6 +29,12 @@ La EIA publica una vez por semana: el último dato suele tener entre 5 y 9 días
 EIA_API_KEY=... .venv/bin/python -m onda_workers.brent --dry-run --since 2025-12-01
 ```
 
+## Semáforo (`onda_workers.semaforo`)
+- `daily`: entrena el modelo actual (v2) con todo el histórico y guarda en `semaforo_diario` la
+  previsión a 7 días desde el último día con precios. Si ese día tiene más de 3 días, no publica.
+  Lo lanza el workflow `semaforo-daily` justo después de cargar los precios diarios.
+- `backtest`: informe *walk-forward* de todas las variantes. Workflow manual `semaforo-backtest`.
+
 ## Desarrollo
 
 ```bash

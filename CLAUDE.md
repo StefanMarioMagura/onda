@@ -35,8 +35,9 @@ Cada onda = 4 tarjetas: qué pasó → por qué importa → cómo te llega → q
 - La app NUNCA llama a fuentes externas: solo lee de Supabase.
 
 ## Tablas principales
-usuarios, gasolineras, precios (histórico, nunca se borra), brent_diario, eventos, ondas,
-orillas, preguntas, predicciones, interacciones.
+usuarios, gasolineras, precios (histórico, nunca se borra), precios_diarios, brent_diario,
+semaforo_diario (previsión diaria del semáforo), eventos, ondas, orillas, preguntas,
+predicciones (pronósticos de los usuarios con puntos), interacciones.
 
 ## Reglas
 - Interfaz en español de España. Código, nombres de variables y commits en inglés.
@@ -59,7 +60,8 @@ El v1 (Brent de 14 días + día de la semana) se descartó: con el retraso de 7 
 apenas mejora a la referencia (/docs/decisiones/0005).
 Verde (llena hoy) si sube más de 1 cént/l, rojo (espera) si baja más de 1 cént/l, ámbar en otro caso.
 Comparar siempre con la referencia "mañana igual que hoy"; un modelo que no la supere no se publica.
-El backtest se repite con el workflow manual `semaforo-backtest`.
+El backtest se repite con el workflow manual `semaforo-backtest`; la previsión diaria la
+calcula el workflow `semaforo-daily` y se guarda en `semaforo_diario`.
 
 ## Fase actual
 F0 · Preparación: diseño en Figma, repositorio, y empezar YA a guardar el histórico de precios cada 30 min.

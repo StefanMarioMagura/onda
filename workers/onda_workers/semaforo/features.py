@@ -34,6 +34,8 @@ BRENT_FEATURES = ["brent_7", "brent_14"]
 PUMP_FEATURES = ["price_7", "margin_gap"]
 ALL_FEATURES = BRENT_FEATURES + PUMP_FEATURES
 MARGIN_WINDOW_DAYS = 90
+# The EIA publishes Brent about a week late: training and live use the same lag.
+BRENT_LAG_DAYS = 7
 
 
 def classify(change_eur: float) -> str:
