@@ -1,0 +1,5 @@
+{"COD":"EAES741", "Nombre":"Ambos sexos. Total Nacional. Dato base. Media. ", "FK_Unidad":7, "FK_Escala":1, "Data":[{"Fecha":1640991600000, "FK_TipoDato":1, "FK_Periodo":28, "Anyo":2022, "Valor":26948.87, "Secreto":false}
+,{"Fecha":1672527600000, "FK_TipoDato":1, "FK_Periodo":28, "Anyo":2023, "Valor":28049.94, "Secreto":false}
+,{"Fecha":1704063600000, "FK_TipoDato":1, "FK_Periodo":28, "Anyo":2024, "Valor":29540.26, "Secreto":false}
+]
+}

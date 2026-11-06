@@ -1,0 +1,33 @@
+name: Ingest INE statistics (CPI, salaries)
+
+on:
+  schedule:
+    # Daily: only 4 small requests, and the CPI comes out on varying days
+    # (flash estimate at month end, final data mid-month).
+    - cron: "20 8 * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: ingest-ine
+  cancel-in-progress: false
+
+jobs:
+  ingest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: workers
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: workers/pyproject.toml
+      - name: Install
+        run: pip install .
+      - name: Load CPI and salary series
+        env:
+          DATABASE_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: python -m onda_workers.ine
