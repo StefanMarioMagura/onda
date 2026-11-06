@@ -3,6 +3,7 @@
 Variants (see VARIANTS):
 - v1 (CLAUDE.md):  change_7d ~ brent_7 + brent_14 + weekday (one-hot, Monday as reference)
 - v1.1:            change_7d ~ brent_7 + brent_14 + price_7 + margin_gap
+- v2 (current):    change_7d ~ price_7 + margin_gap
 
 Plus the evaluation tools: a walk-forward backtest by year and metrics
 against the "tomorrow same as today" baseline (expected change 0, so always
@@ -30,8 +31,11 @@ class Variant:
 
 V1 = Variant("v1 · Brent + día de la semana", tuple(BRENT_FEATURES), weekday=True)
 V1_1 = Variant("v1.1 · Brent + tendencia + margen", tuple(BRENT_FEATURES + PUMP_FEATURES), weekday=False)
-PUMP_ONLY = Variant("Solo surtidor · tendencia + margen", tuple(PUMP_FEATURES), weekday=False)
+PUMP_ONLY = Variant("v2 · Solo surtidor · tendencia + margen", tuple(PUMP_FEATURES), weekday=False)
 VARIANTS = [V1, V1_1, PUMP_ONLY]
+
+# The model the semáforo uses (CLAUDE.md, docs/decisiones/0006).
+CURRENT = PUMP_ONLY
 
 
 def usable(data: pd.DataFrame, variant: Variant) -> pd.DataFrame:

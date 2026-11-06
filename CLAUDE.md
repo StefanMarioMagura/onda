@@ -30,7 +30,7 @@ Cada onda = 4 tarjetas: qué pasó → por qué importa → cómo te llega → q
 
 ## Fuentes de datos
 - Precios de todas las gasolineras: API REST de precios de carburantes del Ministerio (Geoportal de Gasolineras).
-- Brent: API de la EIA. Cambio EUR/USD: API del BCE.
+- Brent: API de la EIA (publica con ~7 días de retraso). Cambio EUR/USD: API del BCE.
 - Noticias: RSS de medios + GDELT. Orientación de medios: clasificación propia documentada en /docs.
 - La app NUNCA llama a fuentes externas: solo lee de Supabase.
 
@@ -51,10 +51,15 @@ orillas, preguntas, predicciones, interacciones.
 - Noticias: solo titular, enlace y resumen propio; nunca el texto completo de un medio.
 - Ubicación del usuario solo aproximada (RGPD).
 
-## Semáforo (modelo v1)
-Regresión del cambio de precio a 7 días sobre los cambios del Brent en euros de los últimos 14 días + día de la semana.
+## Semáforo (modelo v2 "solo surtidor")
+Regresión del cambio de precio a 7 días sobre dos variables que se conocen el mismo día:
+la tendencia del precio en surtidor (cambio de los últimos 7 días) y la distancia del margen
+(precio − Brent conocido) a su media de 90 días. Ver /docs/decisiones/0006.
+El v1 (Brent de 14 días + día de la semana) se descartó: con el retraso de 7 días de la EIA
+apenas mejora a la referencia (/docs/decisiones/0005).
 Verde (llena hoy) si sube más de 1 cént/l, rojo (espera) si baja más de 1 cént/l, ámbar en otro caso.
-Comparar siempre con la referencia "mañana igual que hoy".
+Comparar siempre con la referencia "mañana igual que hoy"; un modelo que no la supere no se publica.
+El backtest se repite con el workflow manual `semaforo-backtest`.
 
 ## Fase actual
 F0 · Preparación: diseño en Figma, repositorio, y empezar YA a guardar el histórico de precios cada 30 min.

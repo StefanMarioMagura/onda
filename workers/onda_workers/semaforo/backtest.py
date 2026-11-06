@@ -22,7 +22,7 @@ import sys
 import pandas as pd
 
 from .features import ALL_FEATURES, build_dataset
-from .model import V1, V1_1, VARIANTS, SemaforoModel, class_balance, evaluate, walk_forward
+from .model import CURRENT, V1, VARIANTS, SemaforoModel, class_balance, evaluate, walk_forward
 
 FUELS = {"gasoleo_a": "Gasóleo A", "gasolina_95_e5": "Gasolina 95"}
 REAL_LAG = 7    # days the EIA's Brent arrives late
@@ -93,16 +93,16 @@ def report(prices: pd.DataFrame, brent: pd.Series) -> str:
         out += ["", f"Reparto real de días: verde {pct(balance['verde'])}, ámbar "
                 f"{pct(balance['ambar'])}, rojo {pct(balance['rojo'])}.", ""]
 
-        out += [f"Por año, {V1_1.name}:", "",
+        out += [f"Por año, {CURRENT.name}:", "",
                 "| Año | Días | Error modelo | Error referencia | Mejora | Acierto modelo |",
                 "|---|---|---|---|---|---|"]
-        for year, r in results[V1_1].groupby("year"):
+        for year, r in results[CURRENT].groupby("year"):
             m = evaluate(r)
             out.append(f"| {year} | {m.days} | {m.mae_model_cents:.2f} c | "
                        f"{m.mae_baseline_cents:.2f} c | {pct(m.skill)} | {pct(m.accuracy_model)} |")
 
-        coef = SemaforoModel.fit(real, V1_1).coefficients()
-        out += ["", f"Coeficientes de {V1_1.name} con todos los datos:", "",
+        coef = SemaforoModel.fit(real, CURRENT).coefficients()
+        out += ["", f"Coeficientes de {CURRENT.name} con todos los datos:", "",
                 *[f"- `{k}` = {v:+.3f}" for k, v in coef.items() if k != "intercept"],
                 "", "(Variación del precio a 7 días, en €/l, por cada €/l de la variable.)", ""]
     out += ["*Error* = error absoluto medio del cambio de precio a 7 días. *Mejora* = "

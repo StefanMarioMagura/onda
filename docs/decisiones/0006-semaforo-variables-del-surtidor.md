@@ -1,6 +1,6 @@
 # 0006 · Semáforo: variables del surtidor en lugar del Brent con retraso
 
-**Fecha:** 2026-11-06 · **Estado:** propuesta (pendiente de aprobar el cambio en CLAUDE.md)
+**Fecha:** 2026-11-06 · **Estado:** aceptada (2026-11-06; CLAUDE.md actualizado al modelo v2)
 
 Informe: [docs/semaforo/backtest-v1.1-2026-11-06.md](../semaforo/backtest-v1.1-2026-11-06.md).
 Contexto: el ADR 0005 mostró que el v1 no sirve con el Brent real de la EIA (7 días de retraso).
@@ -32,7 +32,7 @@ al 4–5 %.
   efecto real con estos datos.
 - **El Brent con retraso no añade nada** cuando ya está la tendencia del precio: v1.1 ≈ solo surtidor.
 
-## Propuesta
+## Decisión
 - Sustituir el modelo v1 de CLAUDE.md por el **v2 "solo surtidor"**: regresión del cambio a 7 días
   sobre `price_7` y `margin_gap`, mismos umbrales (±1 cént.) y misma comparación con la referencia.
 - Siguiente simplificación a probar: solo `price_7`. Si rinde igual, es el modelo más fácil de
