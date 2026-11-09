@@ -18,7 +18,7 @@ enum PolAxis {
   final String high;
 }
 
-/// A user's rating of an onda, story or debate.
+/// A user's rating of a news item, story or debate.
 enum Vote {
   mal(-1, 'Mal'),
   igual(0, 'Me da igual'),
