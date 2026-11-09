@@ -51,6 +51,8 @@ def test_uses_the_latest_price_of_each_station(conn, stations):
                 for p in stations.prices],
     )
     store_snapshot(conn, later)
+    # Storing a fixture snapshot dates the stations in the past again.
+    conn.execute("update public.gasolineras set last_seen_at = now()")
     assert call(conn)[0][:2] == (14123, Decimal("1.799"))
 
 

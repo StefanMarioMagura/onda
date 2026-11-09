@@ -11,8 +11,8 @@ dependencies = [
 [project.optional-dependencies]
 # Kept out of the base install so the 30-min ingestion stays light.
 model = ["pandas>=2.2", "scikit-learn>=1.5"]
-# Ondas engine: RSS parsing, headline clustering and the Claude API.
-news = ["feedparser>=6.0", "scikit-learn>=1.5", "anthropic>=2.6"]
+# News: RSS parsing and headline clustering.
+news = ["feedparser>=6.0", "scikit-learn>=1.5"]
 dev = ["pytest>=8", "onda-workers[model,news]"]
 
 [build-system]

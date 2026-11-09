@@ -1,4 +1,4 @@
-name: Ingest news headlines
+name: Ingest news and publish topics
 
 on:
   schedule:
@@ -25,7 +25,11 @@ jobs:
           cache-dependency-path: workers/pyproject.toml
       - name: Install
         run: pip install '.[news]'
-      - name: Store headline + link from each outlet
+      - name: Store headline, link and short extract from each outlet
         env:
           DATABASE_URL: ${{ secrets.SUPABASE_DB_URL }}
         run: python -m onda_workers.news.ingest
+      - name: Group headlines and publish the day's topics
+        env:
+          DATABASE_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: python -m onda_workers.news.topics

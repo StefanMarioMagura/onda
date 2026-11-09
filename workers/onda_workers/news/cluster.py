@@ -17,7 +17,7 @@ import numpy as np
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 
-from .sources import BY_ID, CENTRO, DERECHA, IZQUIERDA
+from .sources import BY_ID, CENTRO, DERECHA, INTERNACIONAL, IZQUIERDA
 
 THRESHOLD = 0.32
 MIN_OUTLETS = 3
@@ -38,12 +38,22 @@ class Item:
     outlet: str
     title: str
     url: str = ""
+    summary: str | None = None
 
 
 @dataclass(frozen=True)
 class Event:
     items: tuple[Item, ...]
-    headline: str                 # most representative headline
+    lead: Item                    # most representative headline
+
+    @property
+    def headline(self) -> str:
+        return self.lead.title
+
+    @property
+    def key(self) -> str:
+        """Stable across hourly runs: the oldest headline's id stays while the story grows."""
+        return f"tema-{min(i.id for i in self.items)}"
 
     @property
     def outlets(self) -> set[str]:
@@ -56,6 +66,12 @@ class Event:
     @property
     def both_sides(self) -> bool:
         return IZQUIERDA in self.sides and DERECHA in self.sides
+
+    @property
+    def international(self) -> bool:
+        """Carried by at least two foreign outlets. Only used to keep room for world news:
+        too rough to show as a label (a Spanish story can be covered abroad and vice versa)."""
+        return sum(1 for o in self.outlets if o in BY_ID and BY_ID[o].side == INTERNACIONAL) >= 2
 
     def score(self) -> tuple[int, int, int]:
         """Rank: more outlets first, then events seen by both sides, then the centre too."""
@@ -97,7 +113,21 @@ def cluster(items: Sequence[Item], threshold: float = THRESHOLD, min_outlets: in
     for members in groups.values():
         if len({items[m].outlet for m in members}) < min_outlets:
             continue
-        # Representative: the headline most similar to the rest of its group.
-        best = max(members, key=lambda m: sim[m, members].sum())
-        events.append(Event(tuple(items[m] for m in members), items[best].title))
+        # Representative: the headline most similar to the rest of its group,
+        # preferring one with an extract to show under it.
+        best = max(members, key=lambda m: (items[m].summary is not None, sim[m, members].sum()))
+        events.append(Event(tuple(items[m] for m in members), items[best]))
     return sorted(events, key=lambda e: e.score(), reverse=True)
+
+
+def select_topics(events: Sequence[Event], total: int = 8, min_world: int = 2) -> list[Event]:
+    """The day's topics: best covered first, keeping room for world news (geopolitics)."""
+    chosen = list(events[:total])
+    missing = min_world - sum(e.international for e in chosen)
+    extra = [e for e in events[total:] if e.international][:max(missing, 0)]
+    for world_event in extra:
+        replaceable = [e for e in chosen if not e.international]
+        if replaceable:
+            chosen.remove(replaceable[-1])          # the least covered
+            chosen.append(world_event)
+    return sorted(chosen, key=lambda e: e.score(), reverse=True)

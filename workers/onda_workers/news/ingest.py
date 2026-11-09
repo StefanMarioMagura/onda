@@ -1,4 +1,7 @@
-"""Read outlet RSS feeds and store headline + link (never the outlet's text).
+"""Read outlet RSS feeds and store headline, link and a short extract.
+
+The extract is the feed's own description, capped at SUMMARY_MAX characters.
+The full text of an article is never stored: the app links to the outlet.
 
 Usage:
     DATABASE_URL=postgresql://... python -m onda_workers.news.ingest
@@ -22,10 +25,13 @@ import feedparser
 import psycopg
 import requests
 
-from .sources import OUTLETS, Outlet
+from .sources import BY_ID, OUTLETS, Outlet
 
 log = logging.getLogger("onda_workers.news.ingest")
 
+SUMMARY_MAX = 280
+# Boilerplate some feeds append to their descriptions.
+SUMMARY_NOISE = re.compile(r"(The post .*|Continuar leyendo.*|Leer más.*|Seguir leyendo.*|\[(…|\.\.\.)\])\s*$", re.I | re.S)
 TRACKING_PARAMS = re.compile(r"^(utm_|fbclid|gclid|ns_|mc_|ref$|xtor$|ito$|int$|cmp$)")
 
 
@@ -35,12 +41,23 @@ class Headline:
     title: str
     url: str
     published_at: datetime | None
+    summary: str | None = None
 
 
 def clean_title(raw: str) -> str:
     """Strip HTML tags and entities and squeeze whitespace."""
     text = html.unescape(re.sub(r"<[^>]+>", " ", raw or ""))
     return re.sub(r"\s+", " ", text).strip()
+
+
+def clean_summary(raw: str | None, title: str) -> str | None:
+    """The feed's description as a short extract, or None if it adds nothing."""
+    text = SUMMARY_NOISE.sub("", clean_title(raw or "")).strip()
+    if len(text) < 20 or text.lower().startswith(title.lower()[:60]):
+        return None
+    if len(text) <= SUMMARY_MAX:
+        return text
+    return text[:SUMMARY_MAX].rsplit(" ", 1)[0].rstrip(" ,.;:") + "…"
 
 
 def canonical_url(url: str) -> str:
@@ -51,7 +68,8 @@ def canonical_url(url: str) -> str:
 
 
 def parse_feed(outlet: Outlet, content: bytes) -> list[Headline]:
-    """RSS or Atom -> headlines. Only title, link and date are kept."""
+    """RSS or Atom -> headlines: title, link, date and a short extract, nothing else."""
+    now = datetime.now(UTC)
     feed = feedparser.parse(content)
     headlines = []
     seen = set()
@@ -66,7 +84,9 @@ def parse_feed(outlet: Outlet, content: bytes) -> list[Headline]:
         seen.add(url)
         stamp = entry.get("published_parsed") or entry.get("updated_parsed")
         published = datetime.fromtimestamp(timegm(stamp), UTC) if stamp else None
-        headlines.append(Headline(outlet.id, title[:400], url, published))
+        if published and published > now:           # some feeds date stories in the future
+            published = now
+        headlines.append(Headline(outlet.id, title[:400], url, published, clean_summary(entry.get("summary"), title)))
     return headlines
 
 
@@ -79,9 +99,9 @@ def fetch(outlet: Outlet, session: requests.Session) -> list[Headline]:
 def store(conn: psycopg.Connection, headlines: list[Headline]) -> int:
     with conn.transaction(), conn.cursor() as cur:
         cur.executemany(
-            "insert into public.noticias (outlet, title, url, published_at) values (%s, %s, %s, %s)"
-            " on conflict (url) do nothing",
-            [(h.outlet, h.title, h.url, h.published_at) for h in headlines],
+            "insert into public.noticias (outlet, outlet_name, title, url, published_at, summary)"
+            " values (%s, %s, %s, %s, %s, %s) on conflict (url) do nothing",
+            [(h.outlet, BY_ID[h.outlet].name, h.title, h.url, h.published_at, h.summary) for h in headlines],
         )
         return cur.rowcount
 
