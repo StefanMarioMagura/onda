@@ -4,7 +4,6 @@ import 'package:go_router/go_router.dart';
 
 import '../../app/theme.dart';
 import '../../data/pocket_repository.dart';
-import '../../data/sample_data.dart';
 import '../../domain/format.dart';
 import '../../domain/fuel.dart';
 import '../../domain/semaforo.dart';
@@ -13,7 +12,7 @@ import 'price_chart.dart';
 import 'semaforo_panel.dart';
 
 /// Fuel detail (from "Tu España"): the semáforo, today's price in the user's area, the cheapest
-/// stations nearby and what following the semáforo has saved.
+/// stations nearby.
 class BolsilloScreen extends ConsumerStatefulWidget {
   const BolsilloScreen({super.key});
 
@@ -27,7 +26,6 @@ class _BolsilloScreenState extends ConsumerState<BolsilloScreen> {
   @override
   Widget build(BuildContext context) {
     final pocket = ref.watch(pocketProvider(_fuel));
-    final saving = ref.watch(monthlySavingProvider);
 
     return SafeArea(
       bottom: false,
@@ -77,8 +75,6 @@ class _BolsilloScreenState extends ConsumerState<BolsilloScreen> {
                       _PriceCard(pocket: value),
                       const SizedBox(height: 24),
                       _Stations(pocket: value),
-                      const SizedBox(height: 16),
-                      _SavingCard(saving: saving),
                     ],
                   AsyncError() => [
                       _ErrorCard(onRetry: () => ref.invalidate(pocketProvider(_fuel))),
@@ -310,34 +306,5 @@ class _SavingLabel extends StatelessWidget {
       return Text('sobre la media', style: OndaText.cuerpo(11, color: Palette.textFaint));
     }
     return Text('−${euros(saving)} / 50 l', style: OndaText.cuerpo(12, weight: 700, color: Palette.lime));
-  }
-}
-
-class _SavingCard extends StatelessWidget {
-  const _SavingCard({required this.saving});
-  final double saving;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: Palette.lime.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Palette.lime.withValues(alpha: 0.4)),
-      ),
-      child: Row(
-        children: [
-          Text(euros(saving),
-              style: OndaText.cifra(48, color: Palette.lime)
-                  .copyWith(shadows: [Shadow(color: Palette.lime.withValues(alpha: 0.4), blurRadius: 20)])),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Text('ahorrados este mes siguiendo el semáforo (ejemplo: llegará con las cuentas de usuario)',
-                style: OndaText.cuerpo(14, color: Palette.textSoft)),
-          ),
-        ],
-      ),
-    );
   }
 }

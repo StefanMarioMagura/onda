@@ -99,3 +99,10 @@ def test_store_ignores_repeated_links(conn):
     assert store(conn, [h, Headline("abc", "Otro titular", "https://a.es/2", None)]) == 1
     row = conn.execute("select outlet_name, summary from public.noticias where url = 'https://a.es/1'").fetchone()
     assert row == ("elDiario.es", "Una entradilla")
+
+
+@requires_db
+def test_store_fills_in_an_extract_that_was_missing(conn):
+    assert store(conn, [Headline("abc", "Titular de prueba", "https://a.es/9", None)]) == 1
+    assert store(conn, [Headline("abc", "Titular de prueba", "https://a.es/9", None, "Ahora con entradilla")]) == 1
+    assert conn.execute("select summary from public.noticias where url = 'https://a.es/9'").fetchone()[0] == "Ahora con entradilla"

@@ -7,8 +7,9 @@ import '../../app/theme.dart';
 import '../../domain/discover.dart';
 import '../../domain/rewards.dart';
 import '../../state/rewards_state.dart';
-import '../feed/wave_card_view.dart';
+import '../../domain/news.dart';
 import '../shared/celebration.dart';
+import '../shared/links.dart';
 import '../shared/side_rail.dart';
 import '../shared/vote_dial.dart';
 
@@ -23,7 +24,7 @@ class DiscoverPage extends StatelessWidget {
       StoryItem story => _Story(story: story),
       ClipItem clip => _Clip(clip: clip),
       QuizItem quiz => _Quiz(quiz: quiz),
-      PredictionItem prediction => _PredictionView(item: prediction),
+      NewsItem news => _News(item: news),
       FactItem fact => _Fact(fact: fact),
       DebateItem debate => _Debate(debate: debate),
     };
@@ -32,7 +33,7 @@ class DiscoverPage extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          LayerPill(label: 'Descubre · ${item.topic}', color: Capa.descubre.color),
+          LabelPill(label: 'Descubre · ${item.topic}', color: Palette.descubre),
           const SizedBox(height: 16),
           Expanded(child: body),
         ],
@@ -50,6 +51,7 @@ class _Story extends StatelessWidget {
     return Stack(
       children: [
         SingleChildScrollView(
+          physics: const ClampingScrollPhysics(),
           padding: const EdgeInsets.only(right: 52),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -57,7 +59,7 @@ class _Story extends StatelessWidget {
               if (story.year != null)
                 Text(
                   story.year!,
-                  style: OndaText.cifra(80, color: Capa.descubre.color.withValues(alpha: 0.9)),
+                  style: OndaText.cifra(80, color: Palette.descubre.withValues(alpha: 0.9)),
                 ),
               const SizedBox(height: 6),
               Text(story.title, style: OndaText.impacto(40)),
@@ -238,6 +240,7 @@ class _QuizState extends ConsumerState<_Quiz> {
     final quiz = widget.quiz;
     final answered = _picked != null;
     return SingleChildScrollView(
+      physics: const ClampingScrollPhysics(),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -336,119 +339,6 @@ class _Option extends StatelessWidget {
   }
 }
 
-class _PredictionView extends ConsumerWidget {
-  const _PredictionView({required this.item});
-  final PredictionItem item;
-
-  void _place(BuildContext context, WidgetRef ref, bool yes) {
-    final rewards = ref.read(rewardsProvider.notifier);
-    if (!rewards.canAfford(item.stake)) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Necesitas ${item.stake} puntos. Completa ondas o acierta quizzes.')),
-      );
-      return;
-    }
-    rewards.spend(item.stake);
-    ref.read(predictionsProvider.notifier).place(item.id, Prediction(stake: item.stake, saidYes: yes));
-  }
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final placed = ref.watch(predictionsProvider)[item.id];
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(item.question, style: OndaText.impacto(44)),
-        const SizedBox(height: 18),
-        Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: Palette.surface,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Palette.gold.withValues(alpha: 0.4)),
-          ),
-          child: Row(
-            children: [
-              const Icon(Icons.bolt_rounded, color: Palette.gold, size: 30),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('${item.stake} EN JUEGO', style: OndaText.cifra(24, color: Palette.gold)),
-                    Text(
-                      'Aciertas: ganas ${item.stake * 2}. Se resuelve ${item.resolvesOn} con el dato del Ministerio.',
-                      style: OndaText.cuerpo(13, color: Palette.textSoft),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-        const Spacer(),
-        if (placed == null)
-          Row(
-            children: [
-              Expanded(
-                child: _BigChoice(label: 'SÍ', filled: true, onTap: () => _place(context, ref, true)),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _BigChoice(label: 'NO', filled: false, onTap: () => _place(context, ref, false)),
-              ),
-            ],
-          )
-        else
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(18),
-            decoration: BoxDecoration(color: Palette.surfaceHigh, borderRadius: BorderRadius.circular(12)),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'TU PRONÓSTICO: ${placed.saidYes ? 'SÍ' : 'NO'}',
-                  style: OndaText.impacto(28, color: Palette.lime),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  'Si aciertas, ${placed.stake * 2} puntos. Te avisamos ${item.resolvesOn}.',
-                  style: OndaText.cuerpo(15, color: Palette.textSoft),
-                ),
-              ],
-            ),
-          ),
-        const SizedBox(height: 8),
-      ],
-    );
-  }
-}
-
-class _BigChoice extends StatelessWidget {
-  const _BigChoice({required this.label, required this.filled, required this.onTap});
-  final String label;
-  final bool filled;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        height: 72,
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          color: filled ? Palette.lime : Colors.transparent,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: Palette.lime, width: 2),
-        ),
-        child: Text(label, style: OndaText.impacto(34, color: filled ? Palette.night : Palette.lime)),
-      ),
-    );
-  }
-}
-
 class _Fact extends StatelessWidget {
   const _Fact({required this.fact});
   final FactItem fact;
@@ -489,7 +379,7 @@ class _Debate extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('¿ESTÁS A FAVOR?', style: OndaText.etiqueta(color: Capa.descubre.color, size: 12)),
+        Text('¿ESTÁS A FAVOR?', style: OndaText.etiqueta(color: Palette.descubre, size: 12)),
         const SizedBox(height: 10),
         Text(debate.statement, style: OndaText.impacto(42)),
         const SizedBox(height: 14),
@@ -500,6 +390,49 @@ class _Debate extends StatelessWidget {
         Text('Tu opinión se queda en tu móvil. Solo enviamos un contador anónimo.',
             style: OndaText.cuerpo(11, color: Palette.textFaint)),
         const SizedBox(height: 8),
+      ],
+    );
+  }
+}
+
+/// A real headline as the outlet publishes it, with a link to read it.
+class _News extends ConsumerWidget {
+  const _News({required this.item});
+  final NewsItem item;
+
+  void _opened(BuildContext context, WidgetRef ref) {
+    if (ref.read(rewardsProvider.notifier).claim('read:${item.id}', PointsRules.articleOpened)) {
+      celebrate(context, PointsRules.articleOpened, label: 'Noticia leída');
+    }
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final age = timeAgo(item.publishedAt, DateTime.now());
+    return Stack(
+      children: [
+        SingleChildScrollView(
+          physics: const ClampingScrollPhysics(),
+          padding: const EdgeInsets.only(right: 52),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(item.title, style: OndaText.impacto(38)),
+              const SizedBox(height: 8),
+              Text(age == null ? item.topic : '${item.topic} · $age',
+                  style: OndaText.cuerpo(12, color: Palette.textFaint)),
+              if (item.summary != null) ...[
+                const SizedBox(height: 14),
+                Text(item.summary!, style: OndaText.cuerpo(17, color: Palette.textSoft)),
+              ],
+              const SizedBox(height: 18),
+              ReadAtSourceButton(outlet: item.topic, url: item.url, onOpened: () => _opened(context, ref)),
+              const SizedBox(height: 22),
+              VoteDial(itemId: item.id, question: '¿QUÉ TE PARECE ESTA NOTICIA?'),
+            ],
+          ),
+        ),
+        Positioned(right: 0, top: 0, child: SideRail(id: item.id, narration: item.narration)),
       ],
     );
   }

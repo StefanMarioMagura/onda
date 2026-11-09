@@ -9,22 +9,31 @@ abstract class Speech {
   Future<void> stop();
 }
 
+/// flutter_tts has no voice on some platforms (Linux desktop): [speak] then
+/// throws and the UI tells the user, instead of an uncaught error.
 class DeviceSpeech implements Speech {
-  DeviceSpeech() {
-    _tts.setLanguage('es-ES');
-    _tts.setSpeechRate(0.5);
-  }
-
   final _tts = FlutterTts();
+  bool _configured = false;
 
   @override
   Future<void> speak(String text, {VoidCallback? onDone}) async {
+    if (!_configured) {
+      await _tts.setLanguage('es-ES');
+      await _tts.setSpeechRate(0.5);
+      _configured = true;
+    }
     _tts.setCompletionHandler(() => onDone?.call());
     await _tts.speak(text);
   }
 
   @override
-  Future<void> stop() => _tts.stop();
+  Future<void> stop() async {
+    try {
+      await _tts.stop();
+    } catch (e) {
+      debugPrint('Speech stop failed: $e');
+    }
+  }
 }
 
 final speechProvider = Provider<Speech>((ref) => DeviceSpeech());

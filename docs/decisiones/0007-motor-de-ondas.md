@@ -1,6 +1,6 @@
 # 0007 · Motor de ondas: de titulares a ondas revisadas
 
-**Fecha:** 2026-11-06 · **Estado:** aceptada
+**Fecha:** 2026-11-06 · **Estado:** sustituida por el [ADR 0008](0008-noticias-sin-ia.md): sin IA por ahora
 
 ## Flujo
 ```

@@ -42,18 +42,15 @@ EIA_API_KEY=... .venv/bin/python -m onda_workers.brent --dry-run --since 2025-12
   Estructura Salarial) desde la API Tempus del INE, en `indicadores`. Workflow diario `ingest-ine`;
   relee los últimos periodos porque el INE revisa datos.
 
-## Motor de ondas (`onda_workers.news`)
-Diseño: [ADR 0007](../docs/decisiones/0007-motor-de-ondas.md). Medios: [docs/producto/medios.md](../docs/producto/medios.md).
-- `ingest`: titular + enlace de 12 medios por RSS, cada hora (workflow `ingest-news`). Nunca el texto.
-- `cluster`: agrupa titulares parecidos de distintos medios en eventos (≥ 3 medios).
-- `generate`: Claude (`claude-opus-5-5`) escribe un **borrador** de onda por evento, en JSON de
-  esquema fijo, con la lista de afirmaciones y sus enlaces. Workflow `generate-ondas` cada mañana
-  (necesita el secreto `ANTHROPIC_API_KEY`).
-- `review`: **revisión humana obligatoria**. Nada llega a la app sin aprobar:
+## Noticias (`onda_workers.news`)
+Sin IA: [ADR 0008](../docs/decisiones/0008-noticias-sin-ia.md). Medios: [docs/producto/medios.md](../docs/producto/medios.md).
+El workflow `ingest-news` ejecuta los dos pasos cada hora:
+- `ingest`: titular, enlace y entradilla corta (máx. 280 caracteres) de 25 medios por RSS. Nunca el artículo.
+- `topics`: agrupa titulares parecidos de distintos medios (`cluster`) y publica los 8 temas del día, con
+  el titular real de cada medio para "Las dos orillas". Borra noticias y temas de más de 7 días.
 
 ```bash
-DATABASE_URL='...' .venv/bin/python -m onda_workers.news.review          # interactivo: aprobar / descartar
-DATABASE_URL='...' .venv/bin/python -m onda_workers.news.review --list
+.venv/bin/python -m onda_workers.news.ingest --dry-run      # probar las fuentes sin tocar la base de datos
 ```
 
 ## Desarrollo
@@ -79,7 +76,6 @@ DATABASE_URL='postgresql://postgres.<ref>:<password>@aws-0-<region>.pooler.supab
   Connection string → Session pooler). Los runners de GitHub no tienen IPv6, así que el host
   directo `db.<ref>.supabase.co` no funciona.
 - `EIA_API_KEY`: clave gratuita de la API de la EIA (https://www.eia.gov/opendata/register.php).
-- `ANTHROPIC_API_KEY`: clave de la API de Claude (https://platform.claude.com), para el motor de ondas.
 
 ### Secreto en Supabase Vault
 - `github_actions_token`: token *fine-grained* de GitHub (solo este repositorio,

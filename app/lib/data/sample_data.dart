@@ -1,441 +1,49 @@
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-
-import '../app/theme.dart';
-import '../domain/affinity.dart';
 import '../domain/discover.dart';
 import '../domain/fuel.dart';
-import '../domain/wave.dart';
-import 'waves_repository.dart';
+import '../domain/news.dart';
 
-/// Sample content for the prototype. Clearly fictional: ondas and Descubre
-/// are labelled in the UI until the ondas engine exists; the pocket sample is
-/// only used when Supabase is not configured (and in tests).
-
-/// Sample ondas, used until real ones are published (and in tests).
-const sampleWaves = _waves;
+/// Fictional content for running without Supabase (tests, quick runs). The UI
+/// labels it: "Contenido de ejemplo" / "Datos de ejemplo". With Supabase
+/// configured the app shows only real data.
 
 PocketSnapshot samplePocket(Fuel fuel) => fuel == Fuel.gasoleoA ? _gasoleo : _gasolina;
 
-/// Euros saved this month by following the semáforo. Sample until users have
-/// accounts and their fill-ups are recorded.
-final monthlySavingProvider = Provider<double>((ref) => 4.20);
-
-/// Pool the endless "Descubre" stream is built from (see discoverAt).
-final discoverPoolProvider = Provider<List<DiscoverItem>>((ref) => _discover);
-
-/// Editorial stances of every rateable item, by id (for the political map).
-final stancesProvider = Provider<Map<String, Stance>>((ref) => {
-      for (final w in ref.watch(todayWavesProvider).value?.waves ?? sampleWaves)
-        if (w.stance != null) w.id: w.stance!,
-      for (final d in ref.watch(discoverPoolProvider))
-        if (d.stance != null) d.id: d.stance!,
-    });
-
-const _discover = <DiscoverItem>[
-  DebateItem(
-    id: 'debate-jornada-375',
-    statement: 'Reducir la jornada laboral máxima a 37,5 horas semanales sin bajar el sueldo.',
-    context: 'Hoy el máximo legal es de 40 horas semanales.',
-    stance: Stance({PolAxis.economia: -1}),
-  ),
-  DebateItem(
-    id: 'debate-tope-alquiler',
-    statement: 'Limitar por ley el precio del alquiler en las zonas con más tensión.',
-    context: 'La ley de vivienda de 2023 permite a las comunidades declarar zonas tensionadas.',
-    stance: Stance({PolAxis.economia: -1}),
-  ),
-  DebateItem(
-    id: 'debate-grandes-fortunas',
-    statement: 'Subir el impuesto a las grandes fortunas.',
-    context: 'Desde 2022 existe un impuesto temporal de solidaridad sobre patrimonios de más de 3 millones de euros.',
-    stance: Stance({PolAxis.economia: -1}),
-  ),
-  DebateItem(
-    id: 'debate-bajar-irpf',
-    statement: 'Bajar el IRPF aunque haya que recortar gasto público.',
-    context: 'El IRPF es el impuesto que más recauda el Estado.',
-    stance: Stance({PolAxis.economia: 1}),
-  ),
-  DebateItem(
-    id: 'debate-sucesiones',
-    statement: 'Eliminar el impuesto de sucesiones y donaciones.',
-    context: 'Lo gestionan las comunidades autónomas y varias ya lo han bonificado casi por completo.',
-    stance: Stance({PolAxis.economia: 1}),
-  ),
-  DebateItem(
-    id: 'debate-cotizaciones',
-    statement: 'Reducir las cotizaciones sociales que pagan las empresas por cada trabajador.',
-    context: 'Las cotizaciones financian sobre todo las pensiones.',
-    stance: Stance({PolAxis.economia: 1}),
-  ),
-  DebateItem(
-    id: 'debate-despido',
-    statement: 'Abaratar el despido para que a las empresas les cueste menos contratar.',
-    context: 'La indemnización general por despido improcedente es de 33 días por año trabajado.',
-    stance: Stance({PolAxis.economia: 1}),
-  ),
-  DebateItem(
-    id: 'debate-reincidencia',
-    statement: 'Endurecer las penas para quien reincide en delitos leves, como los hurtos.',
-    context: 'Hoy muchos hurtos de menos de 400 euros se castigan solo con multa.',
-    stance: Stance({PolAxis.sociedad: 1}),
-  ),
-  DebateItem(
-    id: 'debate-inmigracion',
-    statement: 'Reducir la llegada de inmigrantes y endurecer las expulsiones.',
-    context: 'En 2025 vivían en España algo más de 7 millones de personas nacidas en el extranjero.',
-    stance: Stance({PolAxis.sociedad: 1}),
-  ),
-  DebateItem(
-    id: 'debate-religion',
-    statement: 'Dar más peso a la asignatura de Religión en la escuela.',
-    context: 'Hoy es optativa y no cuenta para la nota media.',
-    stance: Stance({PolAxis.sociedad: 1}),
-  ),
-  DebateItem(
-    id: 'debate-eutanasia',
-    statement: 'Mantener la ley que regula la eutanasia.',
-    context: 'La ley está en vigor desde 2021.',
-    stance: Stance({PolAxis.sociedad: -1}),
-  ),
-  DebateItem(
-    id: 'debate-regularizacion',
-    statement: 'Regularizar a los inmigrantes que ya viven y trabajan en España sin papeles.',
-    context: 'En 2024 el Congreso admitió a trámite una iniciativa legislativa popular con este objetivo.',
-    stance: Stance({PolAxis.sociedad: -1}),
-  ),
-  DebateItem(
-    id: 'debate-toros',
-    statement: 'Prohibir las corridas de toros.',
-    context: 'Están protegidas como patrimonio cultural por una ley de 2013.',
-    stance: Stance({PolAxis.sociedad: -1}),
-  ),
-  DebateItem(
-    id: 'debate-recentralizar',
-    statement: 'Que el Estado vuelva a gestionar la sanidad y la educación.',
-    context: 'Hoy las gestionan las comunidades autónomas.',
-    stance: Stance({PolAxis.territorio: 1}),
-  ),
-  DebateItem(
-    id: 'debate-castellano-vehicular',
-    statement: 'Que el castellano sea lengua vehicular en todas las escuelas de España.',
-    context: 'En comunidades con lengua propia, cada una decide cómo reparte las lenguas en la escuela.',
-    stance: Stance({PolAxis.territorio: 1}),
-  ),
-  DebateItem(
-    id: 'debate-concierto',
-    statement: 'Suprimir el concierto económico vasco y el convenio navarro.',
-    context: 'Permiten al País Vasco y a Navarra recaudar sus propios impuestos.',
-    stance: Stance({PolAxis.territorio: 1}),
-  ),
-  DebateItem(
-    id: 'debate-financiacion-singular',
-    statement: 'Dar a Cataluña una financiación propia, parecida a la del País Vasco.',
-    context: 'Hoy Cataluña está en el sistema de financiación común de las comunidades.',
-    stance: Stance({PolAxis.territorio: -1}),
-  ),
-  DebateItem(
-    id: 'debate-referendum',
-    statement: 'Permitir referéndums de autodeterminación pactados con el Estado.',
-    context: 'La Constitución no contempla hoy este tipo de consulta.',
-    stance: Stance({PolAxis.territorio: -1}),
-  ),
-  DebateItem(
-    id: 'debate-cercanias',
-    statement: 'Traspasar la gestión de los trenes de Cercanías a las comunidades autónomas.',
-    context: 'En 2024 se acordó el traspaso de Rodalies a Cataluña.',
-    stance: Stance({PolAxis.territorio: -1}),
-  ),
-  StoryItem(
-    id: 'campoamor',
-    topic: 'Historia política',
-    year: '1931',
-    title: 'Clara Campoamor ganó el voto de las mujeres casi sola',
-    body: 'En las Cortes de 1931 defendió el sufragio femenino frente a buena parte de su propio '
-        'partido. El 1 de octubre se aprobó por 161 votos a 121, y en 1933 las españolas votaron '
-        'por primera vez en unas elecciones generales.',
-  ),
-  QuizItem(
-    id: 'barril',
-    topic: 'Quiz',
-    question: '¿Cuántos litros tiene un barril de petróleo?',
-    options: ['100 litros', '159 litros', '200 litros'],
-    correct: 1,
-    explanation: 'Un barril son 42 galones estadounidenses: unos 159 litros. Por eso un barril a 75 \$ '
-        'son menos de 50 céntimos por litro de crudo.',
-  ),
-  ClipItem(
-    id: 'diesel-2022',
-    topic: 'Clip · Economía',
-    title: 'Por qué el gasóleo superó a la gasolina',
-    beats: [
-      '2022',
-      'El gasóleo pasó a costar más que la gasolina',
-      'Rusia era el gran proveedor de diésel de Europa',
-      'Las sanciones cortaron ese suministro',
-      'Menos oferta, el mismo consumo',
-      'Resultado: el precio se disparó',
+const sampleTopics = <NewsTopic>[
+  NewsTopic(
+    id: 'tema-ejemplo-1',
+    headline: 'Titular de ejemplo sobre una medida del Gobierno',
+    summary: 'Entradilla de ejemplo: aquí aparece el resumen corto que publica el propio medio en su RSS.',
+    url: 'https://example.com/izquierda',
+    outletName: 'Medio A',
+    outlets: 3,
+    headlines: [
+      OutletHeadline(outlet: 'Medio A', side: NewsSide.izquierda, title: 'El Gobierno aprueba la medida de ejemplo', url: 'https://example.com/izquierda'),
+      OutletHeadline(outlet: 'Medio B', side: NewsSide.centro, title: 'Aprobada la medida de ejemplo', url: 'https://example.com/centro'),
+      OutletHeadline(outlet: 'Medio C', side: NewsSide.derecha, title: 'La oposición critica la medida de ejemplo', url: 'https://example.com/derecha'),
     ],
   ),
-  StoryItem(
-    id: 'salas',
-    topic: 'Ciencia',
-    year: '1989',
-    title: 'La patente de Margarita Salas fue la más rentable del CSIC',
-    body: 'Estudiando un virus que infecta bacterias, su equipo descubrió una enzima, la ADN '
-        'polimerasa del fago phi29, capaz de copiar ADN de forma muy eficaz. Hoy se usa en '
-        'laboratorios de todo el mundo para analizar muestras genéticas diminutas.',
-  ),
-  PredictionItem(
-    id: 'gasoleo-semana',
-    topic: 'Predicción',
-    question: '¿Subirá el gasóleo más de 1 céntimo esta semana?',
-    stake: 20,
-    resolvesOn: 'el miércoles 11',
-  ),
-  FactItem(
-    id: 'gasolineras',
-    topic: 'Dato',
-    figure: '11.457',
-    text: 'gasolineras publicaron sus precios hoy en España. ONDA las revisa cada media hora.',
-    source: 'Ministerio para la Transición Ecológica',
-  ),
-  StoryItem(
-    id: 'cajal',
-    topic: 'Ciencia',
-    year: '1906',
-    title: 'Ramón y Cajal dibujó el cerebro antes de que pudiera fotografiarse',
-    body: 'Con un microscopio y tinta china demostró que el sistema nervioso está formado por '
-        'células independientes, las neuronas. Ganó el Nobel en 1906 y sus dibujos aún se usan '
-        'para enseñar neurociencia.',
-  ),
-  QuizItem(
-    id: 'impuestos',
-    topic: 'Quiz',
-    question: '¿Qué parte de lo que pagas por la gasolina son impuestos?',
-    options: ['Una cuarta parte', 'Alrededor de la mitad', 'Tres cuartas partes'],
-    correct: 1,
-    explanation: 'Entre el impuesto especial sobre hidrocarburos y el IVA del 21 %, los impuestos '
-        'suelen rondar la mitad del precio final.',
-  ),
-  ClipItem(
-    id: 'euribor',
-    topic: 'Clip · Tu dinero',
-    title: 'El euríbor en 20 segundos',
-    beats: [
-      'Euríbor',
-      'El interés al que se prestan dinero los bancos europeos',
-      'Casi todas las hipotecas variables van atadas a él',
-      'Sube el euríbor: sube tu cuota',
-      'Baja el euríbor: baja tu cuota',
+  NewsTopic(
+    id: 'tema-ejemplo-2',
+    headline: 'Titular de ejemplo sobre geopolítica',
+    summary: null,
+    url: 'https://example.com/mundo',
+    outletName: 'Medio D',
+    outlets: 2,
+    headlines: [
+      OutletHeadline(outlet: 'Medio D', side: NewsSide.internacional, title: 'Titular de ejemplo sobre geopolítica', url: 'https://example.com/mundo'),
+      OutletHeadline(outlet: 'Medio B', side: NewsSide.centro, title: 'Otro titular de ejemplo sobre el mismo tema', url: 'https://example.com/mundo2'),
     ],
-  ),
-  StoryItem(
-    id: 'reforma-politica',
-    topic: 'Historia política',
-    year: '1976',
-    title: 'Las Cortes de Franco votaron su propio final',
-    body: 'En noviembre de 1976, las Cortes franquistas aprobaron la Ley para la Reforma Política, '
-        'que abría paso a elecciones democráticas. En diciembre, el 94 % de los votantes la '
-        'respaldó en referéndum.',
-  ),
-  FactItem(
-    id: 'renovables',
-    topic: 'Dato',
-    figure: '57 %',
-    text: 'de la electricidad que se generó en España en 2024 fue renovable: más de la mitad, por segundo año seguido.',
-    source: 'Red Eléctrica',
   ),
 ];
 
-const _waves = [
-  Wave(
-    id: 'brent-sube',
-    layer: Capa.bolsillo,
-    source: 'Ministerio para la Transición Ecológica · EIA',
-    cards: [
-      WaveCard(
-        headline: 'El petróleo sube un 6 % en dos semanas',
-        body: 'El barril de Brent ha pasado de 71 a 75 dólares desde finales de octubre, '
-            'tras los recortes de producción anunciados por varios países exportadores.',
-        figure: KeyFigure('+6 %', 'Brent en 14 días'),
-        teaser: '¿Cuándo lo notarás en la gasolinera?',
-      ),
-      WaveCard(
-        headline: 'Lo que pasa con el crudo llega al surtidor en una o dos semanas',
-        body: 'Las gasolineras compran combustible con antelación, así que las subidas del '
-            'petróleo tardan unos días en trasladarse. En el último año, cada subida del 5 % '
-            'del Brent acabó en unos 2 céntimos más por litro.',
-        teaser: '¿Cuánto es eso para ti?',
-      ),
-      WaveCard(
-        headline: 'Unos 1,20 € más cada vez que llenas el depósito',
-        body: 'Con un depósito de 50 litros y la subida que esperamos para el gasóleo, '
-            'cada repostaje te costaría algo más que la semana pasada.',
-        figure: KeyFigure('+1,20 €', 'por depósito de 50 l'),
-        teaser: '¿Puedes evitarlo?',
-      ),
-      WaveCard(
-        headline: 'Si te queda menos de medio depósito, llena esta semana',
-        body: 'El semáforo está en verde para el gasóleo en tu zona.',
-        actions: [
-          'Llena antes del fin de semana.',
-          'La gasolinera más barata a menos de 5 km te ahorra 2,90 € por depósito.',
-          'Si puedes esperar dos semanas, no compensa: se espera que siga alta.',
-        ],
-      ),
-    ],
-  ),
-  Wave(
-    id: 'smi',
-    layer: Capa.pais,
-    source: 'BOE · INE',
-    stance: Stance({PolAxis.economia: -1}),
-    shores: TwoShores(
-      supporters: 'Destacan que el salario mínimo ha perdido poder de compra '
-          'con la inflación de los últimos años y que la subida ayuda a 2 millones de personas.',
-      critics: 'Advierten de que encarece la contratación para pequeños '
-          'negocios del campo y la hostelería, sobre todo en las regiones con salarios más bajos.',
-      sharedFacts: [
-        'La subida es de 50 € al mes en 14 pagas.',
-        'Se aplica desde el 1 de enero.',
-        'Afecta sobre todo a menores de 25 años y a empleos a tiempo parcial.',
-      ],
-    ),
-    cards: [
-      WaveCard(
-        headline: 'El salario mínimo sube 50 euros al mes',
-        body: 'El Gobierno ha aprobado la subida del salario mínimo interprofesional para el '
-            'próximo año, tras negociarla con los sindicatos.',
-        figure: KeyFigure('+50 €', 'al mes, en 14 pagas'),
-        teaser: '¿Por qué hay tanta discusión?',
-      ),
-      WaveCard(
-        headline: 'Más sueldo para unos, más costes para otros',
-        body: 'Es una de las medidas que más divide: mejora los ingresos más bajos, pero sube el '
-            'coste de contratar. Mira cómo lo cuenta cada lado y en qué coinciden.',
-        teaser: '¿Y a ti, cómo te afecta?',
-      ),
-      WaveCard(
-        headline: 'Si cobras el mínimo, 700 € más al año',
-        body: 'Si no lo cobras, lo notarás de forma indirecta: algunos servicios con mucha mano '
-            'de obra, como la hostelería, suelen subir precios en los meses siguientes.',
-        figure: KeyFigure('700 €', 'más al año con el salario mínimo'),
-        teaser: '¿Tienes que hacer algo?',
-      ),
-      WaveCard(
-        headline: 'Comprueba tu nómina de enero',
-        body: 'La subida es automática, pero conviene revisarla.',
-        actions: [
-          'Mira que tu nómina de enero refleje el nuevo importe.',
-          'Si trabajas a tiempo parcial, la subida es proporcional a tus horas.',
-        ],
-      ),
-    ],
-  ),
-  Wave(
-    id: 'bce-tipos',
-    layer: Capa.mundo,
-    source: 'Banco Central Europeo · Banco de España',
-    cards: [
-      WaveCard(
-        headline: 'El Banco Central Europeo baja los tipos de interés',
-        body: 'El BCE ha recortado un cuarto de punto el precio del dinero porque la inflación '
-            'en la zona euro ya está cerca de su objetivo del 2 %.',
-        figure: KeyFigure('−0,25', 'puntos'),
-        teaser: '¿Qué tiene que ver con tu hipoteca?',
-      ),
-      WaveCard(
-        headline: 'El euríbor suele moverse antes que el BCE',
-        body: 'El euríbor, el índice al que van ligadas la mayoría de hipotecas variables, '
-            'ya había bajado al anticipar la decisión. Ahora se espera que se estabilice.',
-        teaser: '¿Cuánto bajará tu cuota?',
-      ),
-      WaveCard(
-        headline: 'Unos 25 € menos al mes en una hipoteca media',
-        body: 'Para una hipoteca variable de 150.000 € a 25 años, en la próxima revisión anual.',
-        figure: KeyFigure('−25 €', 'al mes, hipoteca de 150.000 €'),
-        teaser: '¿Y si tu hipoteca es fija?',
-      ),
-      WaveCard(
-        headline: 'Si es variable, mira cuándo te toca revisión',
-        body: 'Si es fija, tu cuota no cambia. Los depósitos y cuentas remuneradas pagarán algo menos.',
-        actions: [
-          'Busca en tu contrato el mes de revisión del euríbor.',
-          'Si tienes un depósito a punto de vencer, compara antes de renovarlo.',
-        ],
-      ),
-    ],
-  ),
-  Wave(
-    id: 'luz-finde',
-    layer: Capa.bolsillo,
-    source: 'Red Eléctrica · OMIE',
-    cards: [
-      WaveCard(
-        headline: 'La luz será un 30 % más barata este domingo',
-        body: 'Se espera mucho viento y sol y poca demanda, así que el precio mayorista de la '
-            'electricidad bajará con fuerza el fin de semana.',
-        figure: KeyFigure('−30 %', 'domingo frente a un día laborable'),
-        teaser: '¿Lo notarás en tu factura?',
-      ),
-      WaveCard(
-        headline: 'Solo si tienes la tarifa regulada',
-        body: 'Con la tarifa regulada (PVPC), el precio cambia cada hora. Con tarifa fija de '
-            'mercado libre pagas lo mismo cualquier día.',
-        teaser: '¿Cuánto puedes ahorrar?',
-      ),
-      WaveCard(
-        headline: 'Unos 2 € por mover la colada y el lavavajillas',
-        body: 'Poner lavadora, secadora y lavavajillas el domingo entre las 13 y las 17 h en lugar de '
-            'un martes por la tarde.',
-        figure: KeyFigure('2 €', 'de ahorro este fin de semana'),
-        teaser: '¿Qué hago?',
-      ),
-      WaveCard(
-        headline: 'Deja los electrodomésticos grandes para el domingo',
-        body: 'Las horas más baratas serán las del mediodía.',
-        actions: [
-          'Programa la lavadora y el lavavajillas entre las 13 y las 17 h.',
-          'Si tienes coche eléctrico, cárgalo a esa hora.',
-        ],
-      ),
-    ],
-  ),
-  Wave(
-    id: 'aranceles',
-    layer: Capa.mundo,
-    source: 'Comisión Europea · ICEX',
-    cards: [
-      WaveCard(
-        headline: 'Estados Unidos sube los aranceles al aceite de oliva europeo',
-        body: 'Washington aplicará un arancel del 15 % al aceite de oliva importado de la Unión '
-            'Europea a partir del próximo mes.',
-        figure: KeyFigure('15 %', 'de arancel'),
-        teaser: '¿Por qué importa en España?',
-      ),
-      WaveCard(
-        headline: 'España vende allí uno de cada cinco litros que exporta',
-        body: 'Estados Unidos es el segundo mayor comprador de aceite español. Si exportar sale más '
-            'caro, parte de ese aceite se quedará en Europa.',
-        teaser: '¿Y eso es bueno o malo para ti?',
-      ),
-      WaveCard(
-        headline: 'Puede que el aceite baje un poco en el súper',
-        body: 'Con más aceite en el mercado europeo, los analistas esperan una ligera bajada de '
-            'precio en los próximos meses. Para los productores, en cambio, es una mala noticia.',
-        figure: KeyFigure('−3 %', 'precio esperado en tienda'),
-        teaser: '¿Merece la pena esperar para comprar?',
-      ),
-      WaveCard(
-        headline: 'No hace falta acumular aceite',
-        body: 'La bajada, si llega, será pequeña y gradual.',
-        actions: [
-          'Compra lo que necesites, sin hacer acopio.',
-          'Compara el precio por litro entre formatos: la garrafa de 5 l suele salir más barata.',
-        ],
-      ),
-    ],
+const sampleLatest = <NewsItem>[
+  NewsItem(
+    id: 'noticia-ejemplo-1',
+    topic: 'Medio B',
+    title: 'Noticia suelta de ejemplo',
+    summary: 'Entradilla de ejemplo de una noticia que no forma parte de los temas del día.',
+    url: 'https://example.com/suelta',
+    publishedAt: null,
   ),
 ];
 

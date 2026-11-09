@@ -1,9 +1,8 @@
 import 'dart:math';
 
-import '../app/theme.dart';
 import 'affinity.dart';
 
-/// Items of the endless "Descubre" stream that follows today's ondas.
+/// Items of the endless "Descubre" stream that follows the day's topics.
 /// Formats are mixed on purpose: each swipe can bring something different.
 sealed class DiscoverItem {
   const DiscoverItem({required this.id, required this.topic, this.stance});
@@ -63,17 +62,22 @@ class QuizItem extends DiscoverItem {
   final String explanation;
 }
 
-class PredictionItem extends DiscoverItem {
-  const PredictionItem({
+/// A real headline as an outlet publishes it: title, short extract and link.
+class NewsItem extends DiscoverItem {
+  const NewsItem({
     required super.id,
     required super.topic,
-    required this.question,
-    required this.stake,
-    required this.resolvesOn,
+    required this.title,
+    required this.summary,
+    required this.url,
+    required this.publishedAt,
   });
-  final String question;
-  final int stake;
-  final String resolvesOn;
+  final String title;
+  final String? summary;
+  final String url;
+  final DateTime? publishedAt;
+
+  String get narration => summary == null ? title : '$title. $summary';
 }
 
 class FactItem extends DiscoverItem {
@@ -82,8 +86,6 @@ class FactItem extends DiscoverItem {
   final String text;
   final String source;
 }
-
-Capa get discoverLayer => Capa.descubre;
 
 /// Item number [index] of an endless stream built from [pool].
 /// Each pass over the pool uses a different (but reproducible) order, so the

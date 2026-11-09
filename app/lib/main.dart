@@ -39,6 +39,13 @@ class OndaApp extends StatelessWidget {
       theme: ondaTheme(),
       scrollBehavior: const OndaScrollBehavior(),
       routerConfig: router,
+      // On PC and wide web windows, keep the feed as a column instead of stretching it.
+      builder: (context, child) => ColoredBox(
+        color: Palette.night,
+        child: Center(
+          child: ConstrainedBox(constraints: const BoxConstraints(maxWidth: 560), child: child),
+        ),
+      ),
     );
   }
 }

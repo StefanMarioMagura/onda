@@ -25,7 +25,7 @@ Future<void> openPerfil(WidgetTester tester, Map<String, Object> stored) async {
   await tester.pumpAndSettle();
 }
 
-/// Votes "bien" on every debate that pushes towards the low end of each axis
+/// Answers "bien" to debates that push towards the low end of each axis
 /// (left, progressive, more self-government) and "mal" on the others.
 const leftVotes = {
   'debate-jornada-375': 'bien', 'debate-tope-alquiler': 'bien', 'debate-grandes-fortunas': 'bien',

@@ -2,20 +2,17 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../app/theme.dart';
-import '../../data/sample_data.dart';
-import '../../data/waves_repository.dart';
+import '../../data/news_repository.dart';
 import '../../domain/discover.dart';
 import '../../domain/rewards.dart';
-import '../../domain/wave.dart';
 import '../../state/rewards_state.dart';
 import '../discover/discover_pages.dart';
 import '../shared/celebration.dart';
 import '../shared/top_bar.dart';
 import 'milestone_page.dart';
-import 'wave_card_view.dart';
+import 'topic_page.dart';
 
-/// The feed: today's ondas first, then a milestone, then "Descubre" with no end.
-/// Vertical swipe moves between items; inside an onda, taps move between cards.
+/// The feed: the day's topics first, then a milestone, then "Descubre" with no end.
 class FeedScreen extends ConsumerStatefulWidget {
   const FeedScreen({super.key});
 
@@ -26,6 +23,10 @@ class FeedScreen extends ConsumerStatefulWidget {
 class _FeedScreenState extends ConsumerState<FeedScreen> {
   final _pages = PageController();
   int _current = 0;
+  double _overscroll = 0;
+
+  /// How far past the end of a long page you must drag to change page.
+  static const _overscrollToTurn = 48.0;
 
   @override
   void dispose() {
@@ -33,42 +34,58 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
     super.dispose();
   }
 
-  void _next() => _pages.nextPage(duration: const Duration(milliseconds: 380), curve: Curves.easeOutCubic);
-
-  void _waveFinished(Wave wave) {
-    if (ref.read(rewardsProvider.notifier).claim('wave:${wave.id}', PointsRules.waveRead)) {
-      celebrate(context, PointsRules.waveRead, label: 'Onda completada');
+  void _onPageChanged(int index, int topicCount) {
+    setState(() => _current = index);
+    if (topicCount > 0 && index == topicCount && mounted) {
+      final now = DateTime.now();
+      final day = '${now.year}-${now.month}-${now.day}';
+      if (ref.read(rewardsProvider.notifier).claim('milestone:$day', PointsRules.dailyMilestone)) {
+        celebrate(context, PointsRules.dailyMilestone, label: 'Día completado');
+      }
     }
-    _next();
   }
 
-  void _onPageChanged(int index, int waveCount) {
-    setState(() => _current = index);
-    if (index == waveCount &&
-        ref.read(rewardsProvider.notifier).claim('milestone:today', PointsRules.dailyMilestone)) {
-      celebrate(context, PointsRules.dailyMilestone, label: 'Día completado');
+  /// A page taller than the screen scrolls on its own and would keep the swipe
+  /// forever: dragging past its end turns the feed's page instead.
+  bool _onNotification(ScrollNotification n) {
+    if (n.depth == 0 || n.metrics.axis != Axis.vertical) return false;
+    if (n is ScrollEndNotification) {
+      _overscroll = 0;
+    } else if (n is OverscrollNotification && n.dragDetails != null) {
+      _overscroll += n.overscroll;
+      if (_overscroll.abs() >= _overscrollToTurn) {
+        final forward = _overscroll > 0;
+        _overscroll = 0;
+        const duration = Duration(milliseconds: 320);
+        forward
+            ? _pages.nextPage(duration: duration, curve: Curves.easeOutCubic)
+            : _pages.previousPage(duration: duration, curve: Curves.easeOutCubic);
+      }
     }
+    return false;
   }
 
   @override
   Widget build(BuildContext context) {
-    return switch (ref.watch(todayWavesProvider)) {
+    return switch (ref.watch(todayNewsProvider)) {
       AsyncData(:final value) => _feed(value),
-      AsyncError() => SafeArea(child: _LoadError(onRetry: () => ref.invalidate(todayWavesProvider))),
+      AsyncError() => SafeArea(child: _LoadError(onRetry: () => ref.invalidate(todayNewsProvider))),
       _ => const SafeArea(child: Center(child: CircularProgressIndicator(color: Palette.lime))),
     };
   }
 
-  Widget _feed(TodayWaves today) {
-    final waves = today.waves;
+  Widget _feed(TodayNews today) {
+    final topics = today.topics;
     final pool = ref.watch(discoverPoolProvider);
+    // With no topics there is no milestone either: straight to Descubre.
+    final discoverStart = topics.isEmpty ? 0 : topics.length + 1;
 
     return SafeArea(
       bottom: false,
       child: Column(
         children: [
-          TopBar(trailing: _SectionLabel(index: _current, waveCount: waves.length)),
-          if (today.isSample && _current < waves.length)
+          TopBar(trailing: _SectionLabel(index: _current, topicCount: topics.length)),
+          if (today.isSample)
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
               child: Align(
@@ -77,23 +94,20 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
               ),
             ),
           Expanded(
-            child: PageView.builder(
-              controller: _pages,
-              scrollDirection: Axis.vertical,
-              // No itemCount: after today's ondas the feed keeps going.
-              onPageChanged: (i) => _onPageChanged(i, waves.length),
-              itemBuilder: (context, i) {
-                if (i < waves.length) {
-                  return WavePage(
-                    key: ValueKey(waves[i].id),
-                    wave: waves[i],
-                    onFinished: () => _waveFinished(waves[i]),
-                  );
-                }
-                if (i == waves.length) return MilestonePage(wavesRead: waves.length);
-                final next = discoverAt(pool, i - waves.length - 1);
-                return DiscoverPage(key: ValueKey(next.key), item: next.item);
-              },
+            child: NotificationListener<ScrollNotification>(
+              onNotification: _onNotification,
+              child: PageView.builder(
+                controller: _pages,
+                scrollDirection: Axis.vertical,
+                // No itemCount: after the day's topics the feed keeps going.
+                onPageChanged: (i) => _onPageChanged(i, topics.length),
+                itemBuilder: (context, i) {
+                  if (i < topics.length) return TopicPage(key: ValueKey(topics[i].id), topic: topics[i]);
+                  if (i < discoverStart) return MilestonePage(topicsRead: topics.length);
+                  final next = discoverAt(pool, i - discoverStart);
+                  return DiscoverPage(key: ValueKey(next.key), item: next.item);
+                },
+              ),
             ),
           ),
         ],
@@ -114,7 +128,7 @@ class _LoadError extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.center,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('NO HEMOS PODIDO CARGAR LAS ONDAS DE HOY', style: OndaText.impacto(30)),
+          Text('NO HEMOS PODIDO CARGAR LAS NOTICIAS', style: OndaText.impacto(30)),
           const SizedBox(height: 10),
           Text('Comprueba tu conexión e inténtalo de nuevo.', style: OndaText.cuerpo(15, color: Palette.textSoft)),
           const SizedBox(height: 16),
@@ -131,112 +145,17 @@ class _LoadError extends StatelessWidget {
 }
 
 class _SectionLabel extends StatelessWidget {
-  const _SectionLabel({required this.index, required this.waveCount});
+  const _SectionLabel({required this.index, required this.topicCount});
   final int index;
-  final int waveCount;
+  final int topicCount;
 
   @override
   Widget build(BuildContext context) {
-    final text = index < waveCount ? 'HOY ${index + 1}/$waveCount' : 'DESCUBRE';
-    final color = index < waveCount ? Palette.text : Capa.descubre.color;
-    return Text(text, maxLines: 1, overflow: TextOverflow.fade, softWrap: false,
-        style: OndaText.etiqueta(color: color, size: 12));
-  }
-}
-
-/// One onda: 4 cards with a segmented progress bar.
-class WavePage extends StatefulWidget {
-  const WavePage({super.key, required this.wave, required this.onFinished});
-  final Wave wave;
-  final VoidCallback onFinished;
-
-  @override
-  State<WavePage> createState() => _WavePageState();
-}
-
-class _WavePageState extends State<WavePage> {
-  final _cards = PageController();
-  int _card = 0;
-
-  @override
-  void dispose() {
-    _cards.dispose();
-    super.dispose();
-  }
-
-  void _go(int delta) {
-    final target = _card + delta;
-    if (target >= widget.wave.cards.length) {
-      widget.onFinished();
-    } else if (target >= 0) {
-      _cards.animateToPage(target, duration: const Duration(milliseconds: 220), curve: Curves.easeOut);
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final wave = widget.wave;
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          _StepProgress(count: wave.cards.length, current: _card, color: wave.layer.color),
-          const SizedBox(height: 18),
-          Expanded(
-            child: GestureDetector(
-              behavior: HitTestBehavior.translucent,
-              // Story-style navigation: left third goes back, the rest goes forward.
-              onTapUp: (details) {
-                final width = context.size?.width ?? 1;
-                _go(details.localPosition.dx < width / 3 ? -1 : 1);
-              },
-              child: PageView.builder(
-                controller: _cards,
-                itemCount: wave.cards.length,
-                onPageChanged: (i) => setState(() => _card = i),
-                itemBuilder: (context, i) => WaveCardView(
-                  wave: wave,
-                  card: wave.cards[i],
-                  step: WaveStep.values[i],
-                  isLastWaveCard: i == wave.cards.length - 1,
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _StepProgress extends StatelessWidget {
-  const _StepProgress({required this.count, required this.current, required this.color});
-  final int count;
-  final int current;
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        for (var i = 0; i < count; i++) ...[
-          if (i > 0) const SizedBox(width: 4),
-          Expanded(
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 220),
-              height: 4,
-              decoration: BoxDecoration(
-                color: i <= current ? color : Palette.line,
-                borderRadius: BorderRadius.circular(2),
-                boxShadow: i == current
-                    ? [BoxShadow(color: color.withValues(alpha: 0.5), blurRadius: 8)]
-                    : null,
-              ),
-            ),
-          ),
-        ],
-      ],
-    );
+    final today = index < topicCount;
+    return Text(today ? 'HOY ${index + 1}/$topicCount' : 'DESCUBRE',
+        maxLines: 1,
+        overflow: TextOverflow.fade,
+        softWrap: false,
+        style: OndaText.etiqueta(color: today ? Palette.text : Palette.descubre, size: 12));
   }
 }

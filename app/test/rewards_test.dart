@@ -1,6 +1,13 @@
+import 'dart:convert';
+
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:onda/domain/discover.dart';
 import 'package:onda/domain/rewards.dart';
+import 'package:onda/state/rewards_state.dart';
+import 'package:onda/state/votes_state.dart';
+
+import 'helpers.dart';
 
 void main() {
   group('Rewards', () {
@@ -19,9 +26,46 @@ void main() {
       expect(once.claim('wave:brent', 10).points, 90);
     });
 
-    test('spending cannot go below zero', () {
-      expect(start.spend(80).points, 0);
-      expect(() => start.spend(81), throwsStateError);
+  });
+
+  group('RewardsNotifier (real numbers, stored on the device)', () {
+    Future<ProviderContainer> container([Map<String, Object> stored = const {}]) async {
+      final c = ProviderContainer(overrides: [prefsProvider.overrideWithValue(await testPrefs(stored))]);
+      addTearDown(c.dispose);
+      return c;
+    }
+
+    String saved(int points, int streak, DateTime lastVisit) => jsonEncode(
+        {'points': points, 'streak': streak, 'lastVisit': lastVisit.toIso8601String(), 'claimed': ['vote:a']});
+
+    test('a new user starts at zero points and a one-day streak', () async {
+      final c = await container();
+      expect(c.read(rewardsProvider).points, 0);
+      expect(c.read(rewardsProvider).streakDays, 1);
+    });
+
+    test('coming back the next day adds to the streak and keeps the points', () async {
+      final yesterday = DateTime.now().subtract(const Duration(days: 1));
+      final c = await container({'rewards_v1': saved(40, 3, yesterday)});
+      expect(c.read(rewardsProvider).points, 40);
+      expect(c.read(rewardsProvider).streakDays, 4);
+    });
+
+    test('missing days resets the streak, not the points', () async {
+      final longAgo = DateTime.now().subtract(const Duration(days: 5));
+      final c = await container({'rewards_v1': saved(40, 3, longAgo)});
+      expect(c.read(rewardsProvider).streakDays, 1);
+      expect(c.read(rewardsProvider).points, 40);
+    });
+
+    test('claims survive a restart and never pay twice', () async {
+      final c = await container({'rewards_v1': saved(40, 3, DateTime.now())});
+      expect(c.read(rewardsProvider.notifier).claim('vote:a', 5), isFalse);
+      expect(c.read(rewardsProvider.notifier).claim('vote:b', 5), isTrue);
+      final restarted = ProviderContainer(overrides: [prefsProvider.overrideWithValue(c.read(prefsProvider))]);
+      addTearDown(restarted.dispose);
+      expect(restarted.read(rewardsProvider).points, 45);
+      expect(restarted.read(rewardsProvider).hasClaimed('vote:b'), isTrue);
     });
   });
 
@@ -36,16 +80,6 @@ void main() {
     });
     test('missing a day resets to 1', () {
       expect(streakAfterVisit(lastVisit: DateTime(2026, 11, 3), streak: 5, today: today), 1);
-    });
-  });
-
-  group('Prediction', () {
-    test('right guess pays double the stake', () {
-      expect(const Prediction(stake: 20, saidYes: true).payout(happened: true), 40);
-      expect(const Prediction(stake: 20, saidYes: false).payout(happened: false), 40);
-    });
-    test('wrong guess pays nothing', () {
-      expect(const Prediction(stake: 20, saidYes: true).payout(happened: false), 0);
     });
   });
 

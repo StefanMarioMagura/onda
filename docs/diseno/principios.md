@@ -20,31 +20,32 @@ usuario lo que pasa en el mundo.
   "aspecto IA". El impacto viene del contraste, la tipografía y el movimiento.
 
 ## Formato del feed
-1. **Ondas del día** (5-8): 4 tarjetas cada una, como hasta ahora.
-2. **Hito** al terminarlas: celebración y puntos.
-3. **Descubre**, sin final: historias de política, ciencia y curiosidades, mezclando
-   formatos para que cada deslizamiento sea una sorpresa:
-   - **Historia** con narración en audio ("Escuchar").
+1. **Temas del día** (hasta 8): las noticias reales que más medios cubren, con su titular, su
+   entradilla, "Leer en..." y "Las dos orillas": el titular real de cada medio, agrupado por lado.
+2. **Hito** al terminarlos: celebración y puntos.
+3. **Descubre**, sin final: más noticias reales mezcladas con formatos propios, para que cada
+   deslizamiento sea una sorpresa:
+   - **Noticia** de cualquiera de los 25 medios.
+   - **Historia** de política o ciencia con narración en audio ("Escuchar").
    - **Clip**: vídeo corto de tipografía animada, generado en la app a partir del texto.
      No usa vídeos de medios (derechos de autor).
    - **Quiz** de una pregunta con respuesta inmediata.
-   - **Predicción**: "¿Subirá el gasóleo esta semana?", con puntos en juego.
+   - **Debate**: una propuesta real para opinar con el dial; alimenta el mapa político.
 
 ## Mecánicas de enganche
 | Mecánica | Cómo |
 |---|---|
 | Recompensa variable | El tipo de contenido de Descubre varía; los quizzes dan puntos al acertar. |
 | Rachas | Días seguidos entrando; se ve siempre en la cabecera. |
-| Puntos y niveles | Por leer ondas, acertar quizzes y predicciones. Barra de progreso al siguiente nivel. |
-| Predicciones | Como una apuesta, pero con puntos: se resuelven con el dato real del Ministerio. |
+| Puntos y niveles | Por abrir noticias, valorarlas y acertar quizzes. Son reales: empiezan en 0 y se guardan en el móvil. |
 | Celebración | Animación y vibración al ganar puntos. |
 | Audio | Escuchar cualquier historia mientras haces otra cosa. |
 
 ## Límites legales (para que el enganche sea legal en la UE y España)
-- **Los puntos no se compran ni se canjean por dinero o premios.** Si se pudiera, las
-  predicciones serían juego regulado (Ley 13/2011 del juego).
+- **Los puntos no se compran ni se canjean por dinero o premios.** Si se pudiera, cualquier
+  mecánica de apuesta con puntos sería juego regulado (Ley 13/2011 del juego).
 - **Sin patrones engañosos** (DSA art. 25 y normativa de consumo): nada de cifras inventadas
   ("12.000 personas están leyendo esto"), urgencia falsa ni bajas o ajustes escondidos.
 - **Solo mayores de 18**, con confirmación de edad al crear la cuenta.
 - **Notificaciones** solo si el usuario las activa, y desactivables en un toque.
-- **Noticias:** titular, enlace y resumen propio; nunca el texto ni el vídeo de un medio.
+- **Noticias:** titular, enlace y entradilla breve del RSS; nunca el artículo completo ni el vídeo de un medio.

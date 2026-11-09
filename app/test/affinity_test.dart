@@ -1,7 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:onda/data/parties_ches2024.dart';
-import 'package:onda/data/sample_data.dart';
+import 'package:onda/data/discover_content.dart';
 import 'package:onda/domain/affinity.dart';
 
 const eco = Stance({PolAxis.economia: 1});      // "bien" = towards the right

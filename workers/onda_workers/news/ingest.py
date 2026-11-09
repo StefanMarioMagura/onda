@@ -100,7 +100,9 @@ def store(conn: psycopg.Connection, headlines: list[Headline]) -> int:
     with conn.transaction(), conn.cursor() as cur:
         cur.executemany(
             "insert into public.noticias (outlet, outlet_name, title, url, published_at, summary)"
-            " values (%s, %s, %s, %s, %s, %s) on conflict (url) do nothing",
+            " values (%s, %s, %s, %s, %s, %s)"
+            " on conflict (url) do update set summary = excluded.summary, outlet_name = excluded.outlet_name"
+            " where noticias.summary is null and excluded.summary is not null",
             [(h.outlet, BY_ID[h.outlet].name, h.title, h.url, h.published_at, h.summary) for h in headlines],
         )
         return cur.rowcount

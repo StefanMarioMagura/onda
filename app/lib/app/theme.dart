@@ -17,21 +17,16 @@ abstract final class Palette {
   /// Rewards only: points, streak, level.
   static const gold = Color(0xFFFFC83D);
 
+  /// Descubre label.
+  static const descubre = Color(0xFFFF4FD8);
+
+  /// "Las dos orillas": no party colours on purpose.
+  static const sideLeft = Color(0xFF3DD9FF);
+  static const sideRight = Color(0xFFFF7A1A);
+
   static const verde = Color(0xFF00E676);
   static const ambar = Color(0xFFFFB800);
   static const rojo = Color(0xFFFF3B5C);
-}
-
-/// ONDA's content layers, each with its own neon accent.
-enum Capa {
-  bolsillo('Tu bolsillo', Palette.lime),
-  pais('Tu país', Color(0xFF3DD9FF)),
-  mundo('El mundo', Color(0xFFFF7A1A)),
-  descubre('Descubre', Color(0xFFFF4FD8));
-
-  const Capa(this.etiqueta, this.color);
-  final String etiqueta;
-  final Color color;
 }
 
 const _family = 'Archivo';

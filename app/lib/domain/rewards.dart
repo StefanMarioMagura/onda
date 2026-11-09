@@ -1,8 +1,7 @@
 /// Points, levels and streaks. Points are never bought nor exchanged for money
-/// or prizes: that keeps predictions outside Spanish gambling law
-/// (docs/diseno/principios.md).
+/// or prizes (docs/diseno/principios.md).
 abstract final class PointsRules {
-  static const waveRead = 10;
+  static const articleOpened = 10;
   static const dailyMilestone = 50;
   static const quizCorrect = 20;
   static const vote = 5;
@@ -30,11 +29,6 @@ class Rewards {
     return Rewards(points: points + amount, streakDays: streakDays, claimed: {...claimed, key});
   }
 
-  /// Takes [amount] points (a prediction stake). Never below zero.
-  Rewards spend(int amount) {
-    if (amount > points) throw StateError('Not enough points: $points < $amount');
-    return Rewards(points: points - amount, streakDays: streakDays, claimed: claimed);
-  }
 }
 
 /// Streak after opening the app [today], given the last day it was opened.
@@ -47,14 +41,4 @@ int streakAfterVisit({required DateTime? lastVisit, required int streak, require
   if (gap <= 0) return streak;
   if (gap == 1) return streak + 1;
   return 1;
-}
-
-/// A yes/no prediction with points at stake, resolved with real data later.
-/// Winning returns double the stake; losing returns nothing.
-class Prediction {
-  const Prediction({required this.stake, required this.saidYes});
-  final int stake;
-  final bool saidYes;
-
-  int payout({required bool happened}) => saidYes == happened ? stake * 2 : 0;
 }

@@ -2,15 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../app/theme.dart';
-import '../../data/sample_data.dart';
-import '../../domain/format.dart';
 import '../../domain/rewards.dart';
 import '../../state/rewards_state.dart';
 
-/// Shown after today's ondas: the day's reward, then the feed carries on into Descubre.
+/// Shown after the day's topics: the day's reward, then the feed carries on into Descubre.
 class MilestonePage extends ConsumerStatefulWidget {
-  const MilestonePage({super.key, required this.wavesRead});
-  final int wavesRead;
+  const MilestonePage({super.key, required this.topicsRead});
+  final int topicsRead;
 
   @override
   ConsumerState<MilestonePage> createState() => _MilestonePageState();
@@ -29,13 +27,12 @@ class _MilestonePageState extends ConsumerState<MilestonePage> with SingleTicker
   @override
   Widget build(BuildContext context) {
     final rewards = ref.watch(rewardsProvider);
-    final saving = ref.watch(monthlySavingProvider);
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 28, 20, 20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('ONDAS DE HOY', style: OndaText.etiqueta(color: Palette.gold, size: 12)),
+          Text('TEMAS DE HOY', style: OndaText.etiqueta(color: Palette.gold, size: 12)),
           const SizedBox(height: 8),
           FittedBox(
             fit: BoxFit.scaleDown,
@@ -54,24 +51,24 @@ class _MilestonePageState extends ConsumerState<MilestonePage> with SingleTicker
           const SizedBox(height: 12),
           Row(
             children: [
-              _Stat(value: '${widget.wavesRead}', label: 'ondas leídas', color: Palette.text),
+              _Stat(value: '${widget.topicsRead}', label: 'temas del día', color: Palette.text),
               const SizedBox(width: 12),
-              _Stat(value: euros(saving), label: 'ahorrado este mes', color: Palette.lime),
+              _Stat(value: '${rewards.points}', label: 'puntos en total', color: Palette.gold),
             ],
           ),
           const Spacer(),
           Center(
             child: Column(
               children: [
-                Text('SIGUE CON DESCUBRE', style: OndaText.etiqueta(color: Capa.descubre.color, size: 13)),
-                Text('Historias, ciencia y curiosidades', style: OndaText.cuerpo(14, color: Palette.textSoft)),
+                Text('SIGUE CON DESCUBRE', style: OndaText.etiqueta(color: Palette.descubre, size: 13)),
+                Text('Más noticias, historias, debates y curiosidades', style: OndaText.cuerpo(14, color: Palette.textSoft)),
                 AnimatedBuilder(
                   animation: _bounce,
                   builder: (context, child) => Transform.translate(
                     offset: Offset(0, 6 * Curves.easeInOut.transform(_bounce.value)),
                     child: child,
                   ),
-                  child: Icon(Icons.keyboard_double_arrow_down_rounded, size: 36, color: Capa.descubre.color),
+                  child: Icon(Icons.keyboard_double_arrow_down_rounded, size: 36, color: Palette.descubre),
                 ),
               ],
             ),

@@ -99,7 +99,17 @@ class _ListenButtonState extends ConsumerState<ListenButton> with SingleTickerPr
     }
     setState(() => _playing = true);
     _bars.repeat(reverse: true);
-    await speech.speak(widget.text, onDone: _stopped);
+    try {
+      await speech.speak(widget.text, onDone: _stopped);
+    } catch (e) {
+      debugPrint('Speech failed: $e');
+      _stopped();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('La lectura en voz alta no está disponible en este dispositivo.')),
+        );
+      }
+    }
   }
 
   void _stopped() {

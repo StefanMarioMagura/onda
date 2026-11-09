@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:onda/data/pocket_repository.dart';
+import 'package:onda/data/news_repository.dart';
 import 'package:onda/data/sample_data.dart';
 import 'package:onda/domain/explain.dart';
 import 'package:onda/domain/fuel.dart';
@@ -140,6 +141,7 @@ void main() {
       overrides: [
         speechProvider.overrideWithValue(FakeSpeech()),
         pocketRepositoryProvider.overrideWithValue(repo),
+        newsRepositoryProvider.overrideWithValue(SampleNewsRepository()),
         prefsProvider.overrideWithValue(await testPrefs()),
       ],
       child: const OndaApp(),

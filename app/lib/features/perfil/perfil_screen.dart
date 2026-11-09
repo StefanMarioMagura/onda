@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../app/theme.dart';
 import '../../data/parties_ches2024.dart';
-import '../../data/sample_data.dart';
+import '../../data/discover_content.dart';
 import '../../domain/affinity.dart';
 import '../../state/rewards_state.dart';
 import '../../state/votes_state.dart';
@@ -97,7 +97,7 @@ class _ConsentCard extends ConsumerWidget {
           Text('¿A QUÉ PARTIDO TE PARECES?', style: OndaText.impacto(32)),
           const SizedBox(height: 10),
           Text(
-            'Con tus valoraciones de noticias y debates, ONDA te sitúa en un mapa político de tres '
+            'Con tus respuestas a los debates de Descubre, ONDA te sitúa en un mapa político de tres '
             'ejes y te dice a qué partido te pareces más, según las posiciones que les dan expertos '
             'independientes (encuesta CHES 2024).',
             style: OndaText.cuerpo(15, color: Palette.textSoft),
@@ -305,7 +305,7 @@ class _Empty extends StatelessWidget {
           Text('VALORA PARA DESCUBRIRLO', style: OndaText.impacto(28)),
           const SizedBox(height: 8),
           Text(
-            'Desliza el dial en los debates de Descubre y en las noticias políticas. Con '
+            'Desliza el dial en los debates que irás encontrando en Descubre. Con '
             '$minVotesPerAxis valoraciones en un eje ya te situamos en él.',
             style: OndaText.cuerpo(15, color: Palette.textSoft),
           ),
@@ -429,10 +429,11 @@ class _Method extends StatelessWidget {
                 'Los partidos están colocados según la Chapel Hill Expert Survey 2024, una encuesta '
                 'académica a expertos en política de cada país (variables lrecon, galtan y regions, de 0 a 10). '
                 'ONDA no decide dónde está cada partido.\n\n'
-                'Cada noticia política y cada debate tiene una marca editorial: hacia qué lado de cada eje '
-                'empuja valorarla bien. Tu posición es la media de tus valoraciones con esas marcas, y el '
+                'Cada debate tiene una marca editorial: hacia qué lado de cada eje '
+                'empuja estar a favor. Tu posición es la media de tus respuestas con esas marcas, y el '
                 'parecido con cada partido depende de la distancia entre tu punto y el suyo.\n\n'
-                'Es una orientación, no un test oficial: con más valoraciones, más fiable.',
+                'Las noticias reales también se valoran, pero no cuentan aquí: no tienen esa marca.\n\n'
+                'Es una orientación, no un test oficial: con más respuestas, más fiable.',
                 style: OndaText.cuerpo(15, color: Palette.textSoft),
               ),
             ],

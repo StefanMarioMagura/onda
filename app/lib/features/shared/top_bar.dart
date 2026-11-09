@@ -19,19 +19,39 @@ class TopBar extends ConsumerWidget {
         children: [
           Row(
             children: [
-              Text('ONDA', style: OndaText.impacto(26, color: Palette.lime)),
-              const SizedBox(width: 10),
               Expanded(
-                child: Align(alignment: Alignment.centerRight, child: trailing ?? const SizedBox.shrink()),
-              ),
-              const SizedBox(width: 10),
-              _Chip(
-                icon: Icons.local_fire_department_rounded,
-                value: rewards.streakDays,
-                tooltip: 'Días seguidos',
+                flex: 2,
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
+                  child: Text('ONDA', style: OndaText.impacto(26, color: Palette.lime)),
+                ),
               ),
               const SizedBox(width: 8),
-              _Chip(icon: Icons.bolt_rounded, value: rewards.points, tooltip: 'Puntos'),
+              Expanded(
+                flex: 2,
+                child: Align(alignment: Alignment.centerRight, child: trailing ?? const SizedBox.shrink()),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                flex: 3,
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerRight,
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      _Chip(
+                        icon: Icons.local_fire_department_rounded,
+                        value: rewards.streakDays,
+                        tooltip: 'Días seguidos',
+                      ),
+                      const SizedBox(width: 8),
+                      _Chip(icon: Icons.bolt_rounded, value: rewards.points, tooltip: 'Puntos'),
+                    ],
+                  ),
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 8),
